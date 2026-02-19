@@ -7,9 +7,9 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#09090b;--card:#0a0a0c;--border:#27272a;--border-hover:#3f3f46;
+  --bg:#09090b;--card:#0a0a0c;--card2:#111113;--border:#27272a;--border-hover:#3f3f46;
   --fg:#fafafa;--muted:#a1a1aa;--accent:#2563eb;--accent-hover:#1d4ed8;
-  --danger:#dc2626;--danger-hover:#b91c1c;--success:#16a34a;
+  --danger:#dc2626;--danger-hover:#b91c1c;--success:#16a34a;--warn:#d97706;
   --radius:8px;--font:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 }
 body{font-family:var(--font);background:var(--bg);color:var(--fg);line-height:1.5;min-height:100vh}
@@ -17,89 +17,136 @@ a{color:var(--accent);text-decoration:none}
 
 /* ── Layout ─────────────────────────── */
 .shell{display:flex;min-height:100vh}
-.sidebar{width:260px;border-right:1px solid var(--border);padding:20px;display:flex;flex-direction:column;gap:4px;position:fixed;top:0;left:0;bottom:0;overflow-y:auto}
-.main{margin-left:260px;flex:1;padding:32px 40px;max-width:960px}
+.sidebar{width:240px;border-right:1px solid var(--border);padding:16px;display:flex;flex-direction:column;gap:2px;position:fixed;top:0;left:0;bottom:0;overflow-y:auto}
+.main{margin-left:240px;flex:1;padding:32px 40px;max-width:980px}
 
-.logo{font-size:15px;font-weight:600;letter-spacing:-.3px;padding:8px 12px;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.logo{font-size:15px;font-weight:600;letter-spacing:-.3px;padding:8px 12px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
 .logo .dot{width:8px;height:8px;border-radius:50%;background:var(--success);flex-shrink:0}
 
 /* ── Nav ────────────────────────────── */
-.nav-section{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:16px 12px 6px}
-.nav-btn{display:flex;align-items:center;gap:10px;width:100%;padding:8px 12px;border:none;background:none;color:var(--muted);font-size:13px;font-family:var(--font);border-radius:6px;cursor:pointer;text-align:left;transition:all .15s}
+.nav-section{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);padding:14px 12px 4px}
+.nav-btn{display:flex;align-items:center;gap:10px;width:100%;padding:7px 12px;border:none;background:none;color:var(--muted);font-size:13px;font-family:var(--font);border-radius:6px;cursor:pointer;text-align:left;transition:all .15s}
 .nav-btn:hover,.nav-btn.active{background:#18181b;color:var(--fg)}
-.nav-btn svg{width:16px;height:16px;flex-shrink:0;opacity:.5}
+.nav-btn svg{width:15px;height:15px;flex-shrink:0;opacity:.5}
 .nav-btn.active svg{opacity:1}
 
 /* ── Typography ─────────────────────── */
-h1{font-size:24px;font-weight:600;letter-spacing:-.5px;margin-bottom:4px}
-.subtitle{color:var(--muted);font-size:14px;margin-bottom:28px}
+h1{font-size:22px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
+.subtitle{color:var(--muted);font-size:13px;margin-bottom:24px}
 
 /* ── Cards ──────────────────────────── */
 .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:12px;transition:border-color .15s}
 .card:hover{border-color:var(--border-hover)}
-.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-.card-title{font-size:15px;font-weight:600}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.card-title{font-size:14px;font-weight:600}
 .card-meta{font-size:12px;color:var(--muted)}
 
 /* ── Badges ─────────────────────────── */
 .badge{display:inline-block;padding:2px 8px;font-size:11px;font-weight:500;border-radius:100px;border:1px solid var(--border)}
 .badge-blue{color:#60a5fa;border-color:#1e3a5f}
 .badge-green{color:#4ade80;border-color:#14532d}
+.badge-orange{color:#fb923c;border-color:#7c2d12}
 
 /* ── Buttons ────────────────────────── */
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;font-size:13px;font-weight:500;font-family:var(--font);border:1px solid var(--border);border-radius:6px;cursor:pointer;transition:all .15s;background:var(--card);color:var(--fg)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;font-size:13px;font-weight:500;font-family:var(--font);border:1px solid var(--border);border-radius:6px;cursor:pointer;transition:all .15s;background:var(--card);color:var(--fg)}
 .btn:hover{background:#18181b;border-color:var(--border-hover)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
 .btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
-.btn-primary:hover{background:var(--accent-hover)}
+.btn-primary:hover:not(:disabled){background:var(--accent-hover)}
 .btn-danger{background:transparent;border-color:var(--danger);color:var(--danger)}
-.btn-danger:hover{background:var(--danger);color:#fff}
-.btn-sm{padding:5px 10px;font-size:12px}
+.btn-danger:hover:not(:disabled){background:var(--danger);color:#fff}
+.btn-warn{background:transparent;border-color:var(--warn);color:var(--warn)}
+.btn-warn:hover:not(:disabled){background:var(--warn);color:#fff}
+.btn-sm{padding:4px 10px;font-size:12px}
 .btn-ghost{background:none;border:none;color:var(--muted);padding:6px}
 .btn-ghost:hover{color:var(--fg)}
 
 /* ── Forms ──────────────────────────── */
-.form-group{margin-bottom:16px}
-.form-group label{display:block;font-size:13px;font-weight:500;margin-bottom:6px;color:var(--muted)}
-.form-group input,.form-group textarea{width:100%;padding:8px 12px;font-size:13px;font-family:var(--font);background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--fg);outline:none;transition:border-color .15s}
-.form-group input:focus,.form-group textarea:focus{border-color:var(--accent)}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:12px;font-weight:500;margin-bottom:5px;color:var(--muted)}
+.form-group input,.form-group textarea,.form-group select{width:100%;padding:8px 12px;font-size:13px;font-family:var(--font);background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--fg);outline:none;transition:border-color .15s}
+.form-group input:focus,.form-group textarea:focus,.form-group select:focus{border-color:var(--accent)}
 .form-group textarea{resize:vertical;min-height:60px}
+.form-group select option{background:#18181b}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-hint{font-size:11px;color:var(--muted);margin-top:4px}
+.manual-toggle{font-size:12px;color:var(--accent);cursor:pointer;background:none;border:none;padding:0;margin-top:4px;font-family:var(--font)}
+.manual-toggle:hover{text-decoration:underline}
 
 /* ── Table ──────────────────────────── */
 .table-wrap{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
 table{width:100%;border-collapse:collapse;font-size:13px}
-th{text-align:left;padding:10px 16px;background:#111113;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid var(--border)}
-td{padding:12px 16px;border-bottom:1px solid var(--border)}
+th{text-align:left;padding:9px 14px;background:#111113;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid var(--border)}
+td{padding:11px 14px;border-bottom:1px solid var(--border)}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:#0f0f11}
 .td-actions{display:flex;gap:4px;justify-content:flex-end}
 
+/* ── Tabs ───────────────────────────── */
+.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:20px;gap:0}
+.tab{padding:8px 16px;font-size:13px;font-weight:500;color:var(--muted);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:var(--font);transition:all .15s}
+.tab:hover{color:var(--fg)}
+.tab.active{color:var(--fg);border-bottom-color:var(--accent)}
+
 /* ── Modal ──────────────────────────── */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:opacity .2s}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:opacity .2s}
 .overlay.open{opacity:1;pointer-events:auto}
-.modal{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:24px;width:100%;max-width:500px;max-height:85vh;overflow-y:auto}
-.modal h2{font-size:18px;font-weight:600;margin-bottom:4px}
-.modal .subtitle{margin-bottom:20px}
-.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:24px;width:100%;max-width:520px;max-height:85vh;overflow-y:auto}
+.modal h2{font-size:17px;font-weight:600;margin-bottom:4px}
+.modal .subtitle{margin-bottom:18px}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
 
 /* ── Toast ──────────────────────────── */
 .toast-container{position:fixed;top:16px;right:16px;z-index:200;display:flex;flex-direction:column;gap:8px}
-.toast{padding:10px 16px;font-size:13px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--fg);animation:slideIn .2s ease}
+.toast{padding:10px 16px;font-size:13px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--fg);animation:slideIn .2s ease;max-width:360px;word-break:break-word}
 .toast-success{border-color:#14532d;color:#4ade80}
 .toast-error{border-color:#7f1d1d;color:#f87171}
 @keyframes slideIn{from{transform:translateX(20px);opacity:0}to{transform:translateX(0);opacity:1}}
 
 /* ── Empty state ────────────────────── */
 .empty{text-align:center;padding:48px 20px;color:var(--muted)}
-.empty svg{width:40px;height:40px;margin-bottom:12px;opacity:.3}
-.empty p{font-size:14px;margin-bottom:16px}
+.empty svg{width:36px;height:36px;margin-bottom:10px;opacity:.3}
+.empty p{font-size:13px;margin-bottom:14px}
 
 /* ── Page detail ────────────────────── */
-.back-btn{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);margin-bottom:16px;cursor:pointer;background:none;border:none;font-family:var(--font);padding:0}
+.back-btn{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);margin-bottom:14px;cursor:pointer;background:none;border:none;font-family:var(--font);padding:0}
 .back-btn:hover{color:var(--fg)}
-.detail-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px}
+.detail-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px}
 .detail-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .mono{font-family:'SF Mono',Consolas,monospace;font-size:12px;color:var(--muted)}
+
+/* ── Error banner ───────────────────── */
+.err-banner{background:#1c1917;border:1px solid #7f1d1d;border-radius:6px;padding:14px 16px;margin-bottom:16px}
+.err-banner-title{color:#f87171;font-weight:600;font-size:13px;margin-bottom:6px}
+.err-banner-body{color:var(--muted);font-size:12px;white-space:pre-wrap;word-break:break-all}
+
+/* ── Log entries ────────────────────── */
+.log-wrap{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;font-family:'SF Mono',Consolas,monospace;font-size:12px;max-height:600px;overflow-y:auto}
+.log-entry{padding:4px 14px;border-bottom:1px solid rgba(39,39,42,.6);line-height:1.6}
+.log-entry:last-child{border-bottom:none}
+.log-entry:hover{background:#0f0f11}
+.log-ts{color:#52525b;margin-right:8px}
+.log-level-INFO{color:#60a5fa}
+.log-level-WARN{color:#fbbf24}
+.log-level-ERROR{color:#f87171}
+.log-ctx{color:#a78bfa;margin:0 6px}
+.log-msg{color:var(--fg)}
+.log-data{color:#6b7280;margin-left:6px}
+.log-row-ERROR{background:rgba(248,113,113,.04)}
+.log-row-WARN{background:rgba(251,191,36,.04)}
+
+/* ── KB page picker ─────────────────── */
+.page-row{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+.page-row:last-child{border-bottom:none}
+.page-row:hover{background:#0f0f11}
+.page-row input[type=checkbox]{width:14px;height:14px;cursor:pointer;accent-color:var(--accent)}
+.page-indexed{color:#4ade80;font-size:11px;margin-left:auto;white-space:nowrap}
+.page-not-indexed{color:var(--muted);font-size:11px;margin-left:auto;white-space:nowrap}
+
+/* ── Progress ───────────────────────── */
+.sync-status{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--card2);border:1px solid var(--border);border-radius:6px;font-size:13px;margin-bottom:12px}
+.spinner{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
 
 /* ── Responsive ─────────────────────── */
 @media(max-width:768px){
@@ -115,39 +162,44 @@ tr:hover td{background:#0f0f11}
   <!-- Sidebar -->
   <nav class="sidebar">
     <div class="logo"><span class="dot"></span> Bridge</div>
-    <div class="nav-section">Navigation</div>
-    <button class="nav-btn active" onclick="navigate('dashboard')">
+    <div class="nav-section">Workspace</div>
+    <button class="nav-btn active" data-view="dashboard" onclick="navigate('dashboard')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
       Dashboard
     </button>
-    <button class="nav-btn" onclick="navigate('workflows')">
+    <button class="nav-btn" data-view="workflows" onclick="navigate('workflows')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       Workflows
     </button>
-    <button class="nav-btn" onclick="navigate('pages')">
+    <button class="nav-btn" data-view="pages" onclick="navigate('pages')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       Pages
     </button>
-    <button class="nav-btn" onclick="navigate('knowledge')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-      Knowledge
+    <div class="nav-section">Knowledge</div>
+    <button class="nav-btn" data-view="knowledge" onclick="navigate('knowledge')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+      Knowledge Base
     </button>
-    <button class="nav-btn" onclick="navigate('rag')">
+    <button class="nav-btn" data-view="rag" onclick="navigate('rag')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
       RAG Query
     </button>
     <div class="nav-section">Settings</div>
-    <button class="nav-btn" onclick="navigate('connect')">
+    <button class="nav-btn" data-view="connect" onclick="navigate('connect')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
       Notion OAuth
     </button>
+    <button class="nav-btn" data-view="logs" onclick="navigate('logs')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Logs
+    </button>
   </nav>
 
-  <!-- Main content -->
+  <!-- Main -->
   <main class="main" id="content"></main>
 </div>
 
-<!-- Modal overlay -->
+<!-- Modal -->
 <div class="overlay" id="overlay" onclick="closeModal(event)">
   <div class="modal" id="modal"></div>
 </div>
@@ -161,7 +213,7 @@ let workflows = [];
 let currentView = 'dashboard';
 let selectedWorkflow = null;
 
-// ── API helpers ────────────────────────────
+// ── API helper ──────────────────────────────
 async function api(path, opts = {}) {
   const res = await fetch(API + path, {
     headers: { 'Content-Type': 'application/json', ...opts.headers },
@@ -173,44 +225,48 @@ async function api(path, opts = {}) {
   return data;
 }
 
-function toast(msg, type = 'success') {
+function toast(msg, type = 'success', duration = 4000) {
   const el = document.createElement('div');
   el.className = `toast toast-${type}`;
   el.textContent = msg;
   document.getElementById('toasts').appendChild(el);
-  setTimeout(() => el.remove(), 3000);
+  setTimeout(() => el.remove(), duration);
 }
 
-// ── Navigation ─────────────────────────────
+// ── Navigation ──────────────────────────────
 function navigate(view, data) {
   currentView = view;
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  const idx = { dashboard: 0, workflows: 1, pages: 2, knowledge: 3, rag: 4, connect: 5 }[view];
-  if (idx !== undefined) document.querySelectorAll('.nav-btn')[idx]?.classList.add('active');
+  const btn = document.querySelector(`.nav-btn[data-view="${view}"]`);
+  if (btn) btn.classList.add('active');
 
-  if (view === 'dashboard') renderDashboard();
-  else if (view === 'workflows') renderWorkflows();
-  else if (view === 'pages') renderPageSelect();
-  else if (view === 'knowledge') renderKnowledgeSelect();
-  else if (view === 'rag') renderRagSelect();
-  else if (view === 'connect') renderConnect();
-  else if (view === 'workflow-detail') renderWorkflowDetail(data);
-  else if (view === 'workflow-pages') renderWorkflowPages(data);
-  else if (view === 'workflow-knowledge') renderWorkflowKnowledge(data);
-  else if (view === 'workflow-rag') renderWorkflowRag(data);
+  const views = {
+    dashboard: () => renderDashboard(),
+    workflows: () => renderWorkflows(),
+    pages: () => renderPageSelect(),
+    knowledge: () => renderKnowledgeSelect(),
+    rag: () => renderRagSelect(),
+    connect: () => renderConnect(),
+    logs: () => renderLogs(),
+    'workflow-detail': () => renderWorkflowDetail(data),
+    'workflow-pages': () => renderWorkflowPages(data),
+    'workflow-knowledge': () => renderWorkflowKnowledge(data),
+    'workflow-rag': () => renderWorkflowRag(data),
+  };
+  (views[view] || (() => {}))();
 }
 
-// ── Dashboard ──────────────────────────────
+// ── Dashboard ───────────────────────────────
 async function renderDashboard() {
   try { workflows = await api('/api/workflows'); } catch(e) { workflows = []; }
   const c = document.getElementById('content');
   c.innerHTML = `
     <h1>Dashboard</h1>
     <p class="subtitle">Notion + n8n Bridge overview</p>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px">
       <div class="card">
-        <div class="card-meta">Total Workflows</div>
-        <div style="font-size:32px;font-weight:700;margin-top:4px">${workflows.length}</div>
+        <div class="card-meta">Workflows</div>
+        <div style="font-size:30px;font-weight:700;margin-top:4px">${workflows.length}</div>
       </div>
       <div class="card">
         <div class="card-meta">API Status</div>
@@ -221,7 +277,7 @@ async function renderDashboard() {
         <div style="margin-top:8px"><button class="btn btn-primary btn-sm" onclick="openCreateWorkflow()">+ New Workflow</button></div>
       </div>
     </div>
-    <h2 style="font-size:16px;font-weight:600;margin-bottom:12px">Recent Workflows</h2>
+    <h2 style="font-size:15px;font-weight:600;margin-bottom:10px">Recent Workflows</h2>
     ${workflows.length === 0 ? `
       <div class="empty">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
@@ -235,14 +291,14 @@ async function renderDashboard() {
           <span class="badge badge-blue">workflow</span>
         </div>
         <div style="font-size:12px;color:var(--muted)">
-          <span class="mono">${w.notion_database_id}</span> &rarr; n8n
+          <span class="mono">${w.notion_database_id}</span>
         </div>
       </div>
     `).join('')}
   `;
 }
 
-// ── Workflows list ─────────────────────────
+// ── Workflows list ──────────────────────────
 async function renderWorkflows() {
   try { workflows = await api('/api/workflows'); } catch(e) { workflows = []; }
   const c = document.getElementById('content');
@@ -261,12 +317,12 @@ async function renderWorkflows() {
     ` : `
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Name</th><th>Notion DB</th><th>n8n Webhook</th><th>Created</th><th></th></tr></thead>
+          <thead><tr><th>Name</th><th>Notion Database</th><th>n8n Webhook</th><th>Created</th><th></th></tr></thead>
           <tbody>
             ${workflows.map(w => `<tr>
               <td><strong>${esc(w.name)}</strong></td>
-              <td><span class="mono">${w.notion_database_id.slice(0,12)}...</span></td>
-              <td><span class="mono">${esc(w.n8n_webhook_url).slice(0,30)}...</span></td>
+              <td><span class="mono">${w.notion_database_id.slice(0,14)}…</span></td>
+              <td><span class="mono">${esc(w.n8n_webhook_url).slice(0,28)}…</span></td>
               <td class="card-meta">${new Date(w.created_at).toLocaleDateString()}</td>
               <td class="td-actions">
                 <button class="btn btn-sm" onclick="navigate('workflow-detail','${w.id}')">Open</button>
@@ -280,7 +336,7 @@ async function renderWorkflows() {
   `;
 }
 
-// ── Workflow detail ────────────────────────
+// ── Workflow detail ─────────────────────────
 async function renderWorkflowDetail(id) {
   let wf;
   try {
@@ -292,7 +348,7 @@ async function renderWorkflowDetail(id) {
   const perms = wf.permissions_json || {};
   const c = document.getElementById('content');
   c.innerHTML = `
-    <button class="back-btn" onclick="navigate('workflows')">&larr; Back to Workflows</button>
+    <button class="back-btn" onclick="navigate('workflows')">&larr; Workflows</button>
     <div class="detail-header">
       <div>
         <h1>${esc(wf.name)}</h1>
@@ -314,16 +370,16 @@ async function renderWorkflowDetail(id) {
       <div class="form-group"><label>Permissions (JSON)</label><textarea readonly>${JSON.stringify(perms, null, 2)}</textarea></div>
       <div class="form-group"><label>Created</label><input readonly value="${new Date(wf.created_at).toLocaleString()}"></div>
     </div>
-    <h2 style="font-size:16px;font-weight:600;margin-bottom:12px">API Endpoints</h2>
-    <div class="card" style="font-size:13px">
+    <h2 style="font-size:15px;font-weight:600;margin-bottom:10px">API Endpoints</h2>
+    <div class="card" style="font-size:12px">
       <table style="width:100%">
-        <tr><td class="card-meta" style="width:80px">POST</td><td class="mono">/api/workflow/${wf.id}/page</td><td class="card-meta">Create page</td></tr>
+        <tr><td class="card-meta" style="width:60px">POST</td><td class="mono">/api/workflow/${wf.id}/page</td><td class="card-meta">Create page</td></tr>
         <tr><td class="card-meta">GET</td><td class="mono">/api/workflow/${wf.id}/pages</td><td class="card-meta">List pages</td></tr>
-        <tr><td class="card-meta">PATCH</td><td class="mono">/api/workflow/${wf.id}/page/:page_id</td><td class="card-meta">Update page</td></tr>
-        <tr><td class="card-meta">DELETE</td><td class="mono">/api/workflow/${wf.id}/page/:page_id</td><td class="card-meta">Archive page</td></tr>
+        <tr><td class="card-meta">PATCH</td><td class="mono">/api/workflow/${wf.id}/page/:id</td><td class="card-meta">Update page</td></tr>
+        <tr><td class="card-meta">DELETE</td><td class="mono">/api/workflow/${wf.id}/page/:id</td><td class="card-meta">Archive page</td></tr>
         <tr><td class="card-meta">POST</td><td class="mono">/api/workflow/${wf.id}/create-and-trigger</td><td class="card-meta">Create + n8n</td></tr>
-        <tr><td colspan="3" style="padding:4px 16px;border-bottom:none"></td></tr>
         <tr><td class="card-meta">POST</td><td class="mono">/api/workflow/${wf.id}/index-notion-page</td><td class="card-meta">Index page</td></tr>
+        <tr><td class="card-meta">POST</td><td class="mono">/api/workflow/${wf.id}/sync-all</td><td class="card-meta">Sync all pages</td></tr>
         <tr><td class="card-meta">GET</td><td class="mono">/api/workflow/${wf.id}/documents</td><td class="card-meta">List docs</td></tr>
         <tr><td class="card-meta">POST</td><td class="mono">/api/workflow/${wf.id}/query</td><td class="card-meta">RAG query</td></tr>
         <tr><td class="card-meta">POST</td><td class="mono">/api/workflow/${wf.id}/query-and-trigger</td><td class="card-meta">RAG + n8n</td></tr>
@@ -332,7 +388,7 @@ async function renderWorkflowDetail(id) {
   `;
 }
 
-// ── Pages (select workflow first) ──────────
+// ── Pages (select workflow) ─────────────────
 function renderPageSelect() {
   if (!workflows.length) {
     api('/api/workflows').then(w => { workflows = w; renderPageSelect(); }).catch(() => {});
@@ -349,12 +405,13 @@ function renderPageSelect() {
           <span class="card-title">${esc(w.name)}</span>
           <span class="badge badge-blue">&rarr;</span>
         </div>
+        <div class="mono">${w.notion_database_id}</div>
       </div>
     `).join('')}
   `;
 }
 
-// ── Workflow pages ─────────────────────────
+// ── Workflow pages ──────────────────────────
 async function renderWorkflowPages(id) {
   let wf = workflows.find(w => w.id === id);
   if (!wf) { try { workflows = await api('/api/workflows'); wf = workflows.find(w => w.id === id); } catch(e){} }
@@ -371,8 +428,8 @@ async function renderWorkflowPages(id) {
         <button class="btn btn-primary btn-sm" onclick="openCreateAndTrigger('${wf.id}')">Create &amp; Trigger</button>
       </div>
     </div>
-    <p class="subtitle">Pages in Notion database <span class="mono">${wf.notion_database_id}</span></p>
-    <div id="pages-loading" class="empty"><p>Loading pages...</p></div>
+    <p class="subtitle">Database: <span class="mono">${wf.notion_database_id}</span></p>
+    <div id="pages-loading" class="empty"><div class="spinner" style="margin:0 auto 10px"></div><p>Loading pages…</p></div>
     <div id="pages-table"></div>
   `;
 
@@ -386,23 +443,23 @@ async function renderWorkflowPages(id) {
     }
     tbl.innerHTML = `
       <div class="table-wrap"><table>
-        <thead><tr><th>Title</th><th>ID</th><th>Last Edited</th><th></th></tr></thead>
+        <thead><tr><th>Title</th><th>Page ID</th><th>Last Edited</th><th></th></tr></thead>
         <tbody>${pages.map(p => {
           const title = getTitle(p);
           return `<tr>
             <td><strong>${esc(title)}</strong></td>
-            <td><span class="mono">${p.id.slice(0,12)}...</span></td>
+            <td><span class="mono">${p.id.slice(0,14)}…</span></td>
             <td class="card-meta">${new Date(p.last_edited_time).toLocaleString()}</td>
             <td class="td-actions">
               <button class="btn btn-sm" onclick="openEditPage('${id}','${p.id}')">Edit</button>
-              <button class="btn btn-danger btn-sm" onclick="archivePage('${id}','${p.id}')">Archive</button>
+              <button class="btn btn-danger btn-sm" onclick="doArchivePage('${id}','${p.id}')">Archive</button>
             </td>
           </tr>`;
         }).join('')}</tbody>
       </table></div>
     `;
   } catch(e) {
-    document.getElementById('pages-loading').innerHTML = `<p style="color:var(--danger)">${esc(e.message)}</p>`;
+    document.getElementById('pages-loading').innerHTML = `<div class="err-banner"><div class="err-banner-title">Failed to load pages</div><div class="err-banner-body">${esc(e.message)}</div></div>`;
   }
 }
 
@@ -423,12 +480,16 @@ function renderKnowledgeSelect() {
           <span class="card-title">${esc(w.name)}</span>
           <span class="badge badge-blue">&rarr;</span>
         </div>
+        <div class="mono">${w.notion_database_id}</div>
       </div>
     `).join('')}
   `;
 }
 
-// ── Workflow Knowledge ──────────────────────
+// ── Workflow Knowledge Base ─────────────────
+let kbTab = 'indexed'; // 'indexed' | 'browse'
+let notionPages = []; // cached pages for the browse tab
+
 async function renderWorkflowKnowledge(id) {
   let wf = workflows.find(w => w.id === id);
   if (!wf) { try { workflows = await api('/api/workflows'); wf = workflows.find(w => w.id === id); } catch(e){} }
@@ -438,87 +499,200 @@ async function renderWorkflowKnowledge(id) {
   c.innerHTML = `
     <button class="back-btn" onclick="navigate('workflows')">&larr; Back</button>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-      <h1>${esc(wf.name)} &mdash; Knowledge</h1>
+      <h1>${esc(wf.name)} &mdash; Knowledge Base</h1>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-sm" onclick="openIndexPage('${wf.id}')">+ Index Notion Page</button>
         <button class="btn btn-sm" onclick="navigate('workflow-rag','${wf.id}')">RAG Query</button>
+        <button class="btn btn-warn btn-sm" id="sync-all-btn" onclick="doSyncAll('${wf.id}')">Sync All from Notion</button>
       </div>
     </div>
-    <p class="subtitle">Indexed documents for this workflow</p>
-    <div id="docs-loading" class="empty"><p>Loading documents...</p></div>
-    <div id="docs-table"></div>
+    <p class="subtitle">Index Notion pages to enable semantic search</p>
+    <div id="sync-status-bar" style="display:none"></div>
+    <div class="tabs">
+      <button class="tab active" id="tab-indexed" onclick="switchKbTab('indexed','${wf.id}')">Indexed Documents</button>
+      <button class="tab" id="tab-browse" onclick="switchKbTab('browse','${wf.id}')">Browse &amp; Index from Notion</button>
+    </div>
+    <div id="kb-tab-content"></div>
   `;
 
+  kbTab = 'indexed';
+  notionPages = [];
+  await renderKbIndexed(wf.id);
+}
+
+function switchKbTab(tab, workflowId) {
+  kbTab = tab;
+  document.getElementById('tab-indexed').classList.toggle('active', tab === 'indexed');
+  document.getElementById('tab-browse').classList.toggle('active', tab === 'browse');
+  if (tab === 'indexed') renderKbIndexed(workflowId);
+  else renderKbBrowse(workflowId);
+}
+
+async function renderKbIndexed(workflowId) {
+  const area = document.getElementById('kb-tab-content');
+  area.innerHTML = `<div class="empty"><div class="spinner" style="margin:0 auto 10px"></div><p>Loading documents…</p></div>`;
   try {
-    const docs = await api(`/api/workflow/${id}/documents`);
-    document.getElementById('docs-loading').style.display = 'none';
-    const tbl = document.getElementById('docs-table');
+    const docs = await api(`/api/workflow/${workflowId}/documents`);
     if (!docs.length) {
-      tbl.innerHTML = '<div class="empty"><p>No documents indexed yet. Click "Index Notion Page" to start.</p></div>';
+      area.innerHTML = `
+        <div class="empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+          <p>No documents indexed yet</p>
+          <button class="btn btn-primary btn-sm" onclick="switchKbTab('browse','${workflowId}')">Browse &amp; Index from Notion</button>
+        </div>`;
       return;
     }
-    tbl.innerHTML = `
+    area.innerHTML = `
       <div class="table-wrap"><table>
-        <thead><tr><th>Title</th><th>Source</th><th>Source ID</th><th>Updated</th><th></th></tr></thead>
+        <thead><tr><th>Title</th><th>Source</th><th>Chunks</th><th>Last Synced</th><th></th></tr></thead>
         <tbody>${docs.map(d => `<tr>
           <td><strong>${esc(d.title || 'Untitled')}</strong></td>
           <td><span class="badge badge-blue">${esc(d.source_type)}</span></td>
-          <td><span class="mono">${esc(d.source_id).slice(0,16)}...</span></td>
+          <td><span class="badge badge-orange">${d.chunk_count ?? '?'} chunks</span></td>
           <td class="card-meta">${d.updated_at ? new Date(d.updated_at).toLocaleString() : '-'}</td>
           <td class="td-actions">
-            <button class="btn btn-sm" onclick="reindexDoc('${id}','${esc(d.source_id)}')">Re-index</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteDoc('${id}','${d.id}')">Delete</button>
+            <button class="btn btn-sm" onclick="reindexDoc('${workflowId}','${esc(d.source_id)}','${esc(d.title || 'Untitled')}')">Re-sync</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteDoc('${workflowId}','${d.id}')">Delete</button>
           </td>
         </tr>`).join('')}</tbody>
       </table></div>
     `;
   } catch(e) {
-    document.getElementById('docs-loading').innerHTML = `<p style="color:var(--danger)">${esc(e.message)}</p>`;
+    area.innerHTML = `<div class="err-banner"><div class="err-banner-title">Failed to load documents</div><div class="err-banner-body">${esc(e.message)}</div></div>`;
   }
 }
 
-function openIndexPage(workflowId) {
-  openModal(`
-    <h2>Index Notion Page</h2>
-    <p class="subtitle">Extract and embed a Notion page into the knowledge base</p>
-    <form onsubmit="submitIndexPage(event, '${workflowId}')">
-      <div class="form-group"><label>Notion Page ID</label><input id="idx-page-id" required placeholder="e.g. 12abc34d-5e6f-..."></div>
-      <div class="modal-actions">
-        <button type="button" class="btn" onclick="closeModal({target:document.getElementById('overlay')})">Cancel</button>
-        <button type="submit" class="btn btn-primary" id="idx-submit-btn">Index Page</button>
-      </div>
-    </form>
-  `);
+async function renderKbBrowse(workflowId) {
+  const area = document.getElementById('kb-tab-content');
+  area.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="font-size:13px;color:var(--muted)">Select pages from your Notion database to add to the knowledge base</div>
+      <button class="btn btn-sm" onclick="loadNotionPagesForBrowse('${workflowId}')">Fetch Pages</button>
+    </div>
+    <div id="browse-content">
+      <div class="empty"><p>Click "Fetch Pages" to load pages from the Notion database</p></div>
+    </div>
+  `;
+
+  // Auto-load if we already have pages cached
+  if (notionPages.length) renderBrowsePageList(workflowId);
 }
 
-async function submitIndexPage(e, workflowId) {
-  e.preventDefault();
-  const btn = document.getElementById('idx-submit-btn');
-  btn.textContent = 'Indexing...';
-  btn.disabled = true;
+async function loadNotionPagesForBrowse(workflowId) {
+  const area = document.getElementById('browse-content');
+  area.innerHTML = `<div class="empty"><div class="spinner" style="margin:0 auto 10px"></div><p>Fetching pages from Notion…</p></div>`;
   try {
-    const res = await api(`/api/workflow/${workflowId}/index-notion-page`, {
-      method: 'POST',
-      body: { notion_page_id: document.getElementById('idx-page-id').value }
-    });
-    closeModal({ target: document.getElementById('overlay') });
-    toast(`Indexed "${res.title}" (${res.chunks} chunks)`);
-    navigate('workflow-knowledge', workflowId);
+    notionPages = await api(`/api/workflow/${workflowId}/pages`);
+    renderBrowsePageList(workflowId);
   } catch(e) {
-    btn.textContent = 'Index Page';
-    btn.disabled = false;
+    area.innerHTML = `<div class="err-banner"><div class="err-banner-title">Failed to fetch pages</div><div class="err-banner-body">${esc(e.message)}</div></div>`;
+  }
+}
+
+async function renderBrowsePageList(workflowId) {
+  const area = document.getElementById('browse-content');
+  // Get indexed source IDs to mark already-indexed pages
+  let indexedIds = new Set();
+  try {
+    const docs = await api(`/api/workflow/${workflowId}/documents`);
+    indexedIds = new Set(docs.map(d => d.source_id.replace(/-/g, '')));
+  } catch(e) {}
+
+  if (!notionPages.length) {
+    area.innerHTML = '<div class="empty"><p>No pages found in this database</p></div>';
+    return;
+  }
+
+  area.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <label style="font-size:13px;display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="select-all-pages" onchange="toggleSelectAll(this)" style="width:14px;height:14px;accent-color:var(--accent)">
+        Select all (${notionPages.length} pages)
+      </label>
+      <button class="btn btn-primary btn-sm" onclick="indexSelectedPages('${workflowId}')">Index Selected</button>
+    </div>
+    <div class="table-wrap">
+      <div>${notionPages.map(p => {
+        const title = getTitle(p);
+        const pid = p.id.replace(/-/g, '');
+        const isIndexed = indexedIds.has(pid);
+        return `<div class="page-row">
+          <input type="checkbox" class="page-checkbox" data-page-id="${p.id}" ${isIndexed ? 'checked' : ''}>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:500">${esc(title)}</div>
+            <div class="mono" style="margin-top:2px">${p.id}</div>
+          </div>
+          <div>${isIndexed
+            ? '<span class="page-indexed">&#10003; Indexed</span>'
+            : '<span class="page-not-indexed">Not indexed</span>'
+          }</div>
+        </div>`;
+      }).join('')}</div>
+    </div>
+    <div style="margin-top:12px;text-align:right">
+      <button class="btn btn-primary btn-sm" onclick="indexSelectedPages('${workflowId}')">Index Selected</button>
+    </div>
+  `;
+}
+
+function toggleSelectAll(master) {
+  document.querySelectorAll('.page-checkbox').forEach(cb => { cb.checked = master.checked; });
+}
+
+async function indexSelectedPages(workflowId) {
+  const selected = [...document.querySelectorAll('.page-checkbox:checked')].map(cb => cb.dataset.pageId);
+  if (!selected.length) { toast('No pages selected', 'error'); return; }
+
+  const btn = document.querySelector('[onclick*="indexSelectedPages"]');
+  if (btn) { btn.textContent = `Indexing 0/${selected.length}…`; btn.disabled = true; }
+
+  let done = 0;
+  let failed = 0;
+  for (const pageId of selected) {
+    try {
+      await api(`/api/workflow/${workflowId}/index-notion-page`, { method: 'POST', body: { notion_page_id: pageId } });
+      done++;
+    } catch(e) {
+      failed++;
+    }
+    if (btn) btn.textContent = `Indexing ${done + failed}/${selected.length}…`;
+  }
+
+  if (btn) { btn.textContent = 'Index Selected'; btn.disabled = false; }
+  if (failed === 0) toast(`Indexed ${done} page${done !== 1 ? 's' : ''}`);
+  else toast(`Indexed ${done}, failed ${failed}`, failed > 0 ? 'error' : 'success');
+
+  // Refresh the list to show updated status
+  notionPages = []; // clear cache to force re-fetch
+  await renderKbBrowse(workflowId);
+  await loadNotionPagesForBrowse(workflowId);
+}
+
+async function doSyncAll(workflowId) {
+  const btn = document.getElementById('sync-all-btn');
+  const bar = document.getElementById('sync-status-bar');
+  if (btn) { btn.disabled = true; btn.textContent = 'Starting sync…'; }
+
+  try {
+    const res = await api(`/api/workflow/${workflowId}/sync-all`, { method: 'POST' });
+    if (bar) {
+      bar.style.display = 'block';
+      bar.innerHTML = `<div class="sync-status"><div class="spinner"></div> Syncing ${res.total} page${res.total !== 1 ? 's' : ''} in background — refresh the Indexed Documents tab to see progress</div>`;
+    }
+    toast(`Sync started for ${res.total} pages — check Logs for progress`);
+  } catch(e) {
     toast(e.message, 'error');
   }
+  if (btn) { btn.disabled = false; btn.textContent = 'Sync All from Notion'; }
 }
 
-async function reindexDoc(workflowId, sourceId) {
+async function reindexDoc(workflowId, sourceId, title) {
   try {
     const res = await api(`/api/workflow/${workflowId}/index-notion-page`, {
       method: 'POST',
       body: { notion_page_id: sourceId }
     });
-    toast(`Re-indexed "${res.title}" (${res.chunks} chunks)`);
-    navigate('workflow-knowledge', workflowId);
+    toast(`Re-synced "${res.title}" (${res.chunks} chunks)`);
+    renderKbIndexed(workflowId);
   } catch(e) { toast(e.message, 'error'); }
 }
 
@@ -527,11 +701,11 @@ async function deleteDoc(workflowId, docId) {
   try {
     await api(`/api/workflow/${workflowId}/document/${docId}`, { method: 'DELETE' });
     toast('Document deleted');
-    navigate('workflow-knowledge', workflowId);
+    renderKbIndexed(workflowId);
   } catch(e) { toast(e.message, 'error'); }
 }
 
-// ── RAG Query (select workflow) ─────────────
+// ── RAG (select workflow) ───────────────────
 function renderRagSelect() {
   if (!workflows.length) {
     api('/api/workflows').then(w => { workflows = w; renderRagSelect(); }).catch(() => {});
@@ -561,16 +735,16 @@ async function renderWorkflowRag(id) {
 
   const c = document.getElementById('content');
   c.innerHTML = `
-    <button class="back-btn" onclick="navigate('workflows')">&larr; Back</button>
+    <button class="back-btn" onclick="navigate('workflow-knowledge','${wf.id}')">&larr; Knowledge Base</button>
     <h1>${esc(wf.name)} &mdash; RAG Query</h1>
     <p class="subtitle">Search the knowledge base using natural language</p>
     <div class="card">
-      <form onsubmit="submitRagQuery(event, '${wf.id}')">
+      <form onsubmit="submitRagQuery(event,'${wf.id}')">
         <div class="form-group"><label>Query</label><input id="rag-query" required placeholder="e.g. How does the onboarding process work?"></div>
         <div class="form-row">
           <div class="form-group"><label>Top K results</label><input id="rag-topk" type="number" value="5" min="1" max="20"></div>
-          <div class="form-group"><label>Also trigger n8n?</label>
-            <select id="rag-trigger" style="width:100%;padding:8px 12px;font-size:13px;font-family:var(--font);background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--fg)">
+          <div class="form-group"><label>Forward to n8n?</label>
+            <select id="rag-trigger">
               <option value="no">No &mdash; query only</option>
               <option value="yes">Yes &mdash; forward to n8n</option>
             </select>
@@ -586,8 +760,7 @@ async function renderWorkflowRag(id) {
 async function submitRagQuery(e, workflowId) {
   e.preventDefault();
   const btn = document.getElementById('rag-submit-btn');
-  btn.textContent = 'Searching...';
-  btn.disabled = true;
+  btn.textContent = 'Searching…'; btn.disabled = true;
   const trigger = document.getElementById('rag-trigger').value === 'yes';
   const endpoint = trigger ? 'query-and-trigger' : 'query';
 
@@ -599,40 +772,45 @@ async function submitRagQuery(e, workflowId) {
         top_k: parseInt(document.getElementById('rag-topk').value) || 5
       }
     });
-    btn.textContent = 'Search Knowledge';
-    btn.disabled = false;
+    btn.textContent = 'Search Knowledge'; btn.disabled = false;
     if (trigger) toast('Results sent to n8n');
 
     const results = document.getElementById('rag-results');
     if (!res.matches || !res.matches.length) {
-      results.innerHTML = '<div class="card" style="margin-top:12px;text-align:center;color:var(--muted)">No matching chunks found. Try indexing more pages.</div>';
+      results.innerHTML = '<div class="card" style="margin-top:12px;text-align:center;color:var(--muted)">No matching chunks found. Index more pages first.</div>';
       return;
     }
     results.innerHTML = `
-      <h2 style="font-size:16px;font-weight:600;margin:20px 0 12px">${res.matches.length} results for "${esc(res.query)}"</h2>
+      <h2 style="font-size:15px;font-weight:600;margin:18px 0 10px">${res.matches.length} results for "${esc(res.query)}"</h2>
       ${res.matches.map((m, i) => `
         <div class="card">
           <div class="card-header">
-            <span class="card-title">#${i+1} &mdash; ${esc(m.document_title || 'Untitled')}</span>
+            <span class="card-title">#${i+1} — ${esc(m.document_title || 'Untitled')}</span>
             <span class="badge badge-blue">${esc(m.source_type)}</span>
           </div>
-          <div style="font-size:13px;color:var(--muted);margin-bottom:8px">
-            Chunk ${m.chunk_index} &middot; <span class="mono">${m.document_id.slice(0,8)}...</span>
-          </div>
-          <div style="font-size:13px;white-space:pre-wrap;background:var(--bg);padding:12px;border-radius:6px;border:1px solid var(--border);max-height:200px;overflow-y:auto">${esc(m.content)}</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Chunk ${m.chunk_index} &middot; <span class="mono">${m.document_id.slice(0,8)}…</span></div>
+          <pre style="font-size:12px;white-space:pre-wrap;background:var(--bg);padding:12px;border-radius:6px;border:1px solid var(--border);max-height:200px;overflow-y:auto;color:var(--fg)">${esc(m.content)}</pre>
         </div>
       `).join('')}
     `;
   } catch(e) {
-    btn.textContent = 'Search Knowledge';
-    btn.disabled = false;
+    btn.textContent = 'Search Knowledge'; btn.disabled = false;
     toast(e.message, 'error');
   }
 }
 
-// ── Notion Connect ─────────────────────────
+// ── Notion Connect ──────────────────────────
 async function renderConnect() {
-  const justConnected = new URLSearchParams(location.search).get('connected') === 'true';
+  const params = new URLSearchParams(location.search);
+  const authError = params.get('auth_error');
+  const authErrorDetail = params.get('auth_error_detail');
+  const justConnected = params.get('connected') === 'true';
+
+  // Clean URL without reloading
+  if (authError || justConnected) {
+    history.replaceState({}, '', '/');
+  }
+
   let configOk = false;
   let connected = justConnected;
   try {
@@ -644,37 +822,119 @@ async function renderConnect() {
   const c = document.getElementById('content');
   c.innerHTML = `
     <h1>Notion OAuth</h1>
-    <p class="subtitle">Connect your Notion workspace to this Bridge</p>
-    ${connected ? `<div class="card" style="border-color:#14532d;margin-bottom:12px">
-      <div style="color:#4ade80;font-weight:600">Notion workspace connected</div>
-      <div style="font-size:13px;color:var(--muted);margin-top:4px">Your workspace token is saved. You can now create workflows and manage pages.</div>
-    </div>` : ''}
+    <p class="subtitle">Connect your Notion workspace to Bridge</p>
+
+    ${authError ? `
+      <div class="err-banner">
+        <div class="err-banner-title">OAuth Login Failed</div>
+        <div class="err-banner-body">${esc(authError)}</div>
+        ${authErrorDetail && authErrorDetail !== '{}' ? `<div class="err-banner-body" style="margin-top:6px;font-size:11px;opacity:.7">${esc(authErrorDetail)}</div>` : ''}
+        <div style="margin-top:8px;font-size:12px;color:var(--muted)">Check the <button class="btn btn-sm" style="padding:2px 8px;font-size:11px" onclick="navigate('logs')">Logs</button> for full error details.</div>
+      </div>
+    ` : ''}
+
+    ${connected ? `
+      <div class="card" style="border-color:#14532d;margin-bottom:12px">
+        <div style="color:#4ade80;font-weight:600">&#10003; Notion workspace connected</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:4px">Your workspace token is saved. You can now create workflows.</div>
+      </div>
+    ` : ''}
+
     <div class="card">
       ${!configOk ? `
-        <div style="background:#1c1917;border:1px solid #7f1d1d;border-radius:6px;padding:12px 16px;margin-bottom:16px">
-          <div style="color:#f87171;font-weight:600;font-size:13px;margin-bottom:4px">OAuth not configured</div>
-          <div style="color:var(--muted);font-size:12px">Set <span class="mono">NOTION_CLIENT_ID</span>, <span class="mono">NOTION_CLIENT_SECRET</span>, and <span class="mono">NOTION_REDIRECT_URI</span> in your <span class="mono">.env</span> file, then restart the server.</div>
+        <div class="err-banner">
+          <div class="err-banner-title">OAuth not configured</div>
+          <div class="err-banner-body">Set <span class="mono">NOTION_CLIENT_ID</span>, <span class="mono">NOTION_CLIENT_SECRET</span>, and <span class="mono">NOTION_REDIRECT_URI</span> in your <span class="mono">.env</span> file, then restart the server.</div>
         </div>
       ` : `
-        <p style="font-size:14px;margin-bottom:16px">Click the button below to start the Notion OAuth flow. You'll be redirected to Notion to authorize this application, then sent back here.</p>
+        <p style="font-size:13px;margin-bottom:16px">Click below to start the Notion OAuth flow. You'll authorize Bridge in Notion then be sent back here.</p>
         <a href="/auth/notion/login" class="btn btn-primary">Connect Notion Workspace</a>
       `}
     </div>
+
     <div class="card" style="margin-top:12px">
       <div class="card-title" style="margin-bottom:12px">Setup Checklist</div>
       <div style="font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:8px">
-        <div>1. Create a <strong>public</strong> Notion integration at <a href="https://www.notion.so/my-integrations" target="_blank">notion.so/my-integrations</a></div>
-        <div>2. Set redirect URI to <span class="mono">${location.origin}/auth/notion/callback</span></div>
-        <div>3. Copy Client ID and Client Secret into your <span class="mono">.env</span> file</div>
+        <div>1. Create a <strong>public</strong> integration at <a href="https://www.notion.so/my-integrations" target="_blank">notion.so/my-integrations</a></div>
+        <div>2. Set OAuth redirect URI to <span class="mono">${location.origin}/auth/notion/callback</span></div>
+        <div>3. Copy Client ID &amp; Secret into your <span class="mono">.env</span></div>
         <div>4. Restart the server: <span class="mono">node server.js</span></div>
         <div>5. Click "Connect Notion Workspace" above</div>
-        <div>6. Authorize the integration in Notion</div>
+        <div>6. Authorize Bridge in Notion</div>
       </div>
     </div>
   `;
 }
 
-// ── Modals ─────────────────────────────────
+// ── Logs ────────────────────────────────────
+let logFilter = 'all';
+
+async function renderLogs() {
+  const c = document.getElementById('content');
+  c.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <h1>Logs</h1>
+      <div style="display:flex;gap:8px;align-items:center">
+        <select id="log-filter" style="padding:6px 10px;font-size:12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--fg)" onchange="logFilter=this.value;refreshLogs()">
+          <option value="all">All levels</option>
+          <option value="ERROR">Errors only</option>
+          <option value="WARN">Warnings &amp; errors</option>
+          <option value="INFO">Info only</option>
+        </select>
+        <button class="btn btn-sm" onclick="refreshLogs()">Refresh</button>
+      </div>
+    </div>
+    <p class="subtitle">Live application logs from <span class="mono">logs/app.log</span></p>
+    <div id="log-content"><div class="empty"><div class="spinner" style="margin:0 auto 10px"></div><p>Loading logs…</p></div></div>
+  `;
+  refreshLogs();
+}
+
+async function refreshLogs() {
+  const area = document.getElementById('log-content');
+  if (!area) return;
+  try {
+    const data = await api('/api/logs?n=400');
+    const lines = data.lines || [];
+
+    const filter = logFilter;
+    const filtered = filter === 'all' ? lines
+      : filter === 'WARN' ? lines.filter(l => l.includes('[ERROR]') || l.includes('[WARN ]'))
+      : lines.filter(l => l.includes(`[${filter}${filter === 'INFO' ? ' ' : ''}]`) || l.includes(`[${filter}]`));
+
+    if (!filtered.length) {
+      area.innerHTML = '<div class="empty"><p>No log entries</p></div>';
+      return;
+    }
+
+    // Render newest first
+    const entries = [...filtered].reverse().map(line => parseLine(line)).join('');
+    area.innerHTML = `<div class="log-wrap">${entries}</div>`;
+  } catch(e) {
+    area.innerHTML = `<div class="err-banner"><div class="err-banner-title">Failed to load logs</div><div class="err-banner-body">${esc(e.message)}</div></div>`;
+  }
+}
+
+function parseLine(line) {
+  // Format: 2024-01-01T00:00:00.000Z [LEVEL] [Context] Message {data}
+  const m = line.match(/^(\S+)\s+\[(\w+)\s*\]\s+\[([^\]]+)\]\s+(.*)$/);
+  if (!m) return `<div class="log-entry"><span class="log-data">${esc(line)}</span></div>`;
+  const [, ts, level, ctx, rest] = m;
+  const time = new Date(ts).toLocaleString();
+  // Split rest into message + optional JSON at end
+  const jsonMatch = rest.match(/^(.*?)(\{.*\})$/);
+  const msg = jsonMatch ? jsonMatch[1].trim() : rest.trim();
+  const data = jsonMatch ? jsonMatch[2] : '';
+  return `<div class="log-entry log-row-${level}">
+    <span class="log-ts">${esc(time)}</span>
+    <span class="log-level-${level}">[${level}]</span>
+    <span class="log-ctx">[${esc(ctx)}]</span>
+    <span class="log-msg">${esc(msg)}</span>
+    ${data ? `<span class="log-data">${esc(data)}</span>` : ''}
+  </div>`;
+}
+
+// ── Modals ──────────────────────────────────
 function openModal(html) {
   document.getElementById('modal').innerHTML = html;
   document.getElementById('overlay').classList.add('open');
@@ -683,54 +943,142 @@ function closeModal(e) {
   if (e && e.target !== document.getElementById('overlay')) return;
   document.getElementById('overlay').classList.remove('open');
 }
-
-function openCreateWorkflow() {
-  openModal(`
-    <h2>New Workflow</h2>
-    <p class="subtitle">Map a Notion database to an n8n webhook</p>
-    <form onsubmit="submitCreateWorkflow(event)">
-      <div class="form-group"><label>Name</label><input id="wf-name" required placeholder="e.g. Content Pipeline"></div>
-      <div class="form-group"><label>Notion Database ID</label><input id="wf-db" required placeholder="abc123def456..."></div>
-      <div class="form-group"><label>n8n Webhook URL</label><input id="wf-hook" required placeholder="https://your-n8n.com/webhook/..."></div>
-      <div class="form-group"><label>Permissions (JSON, optional)</label><textarea id="wf-perms" placeholder='{"can_create": true}'>{}</textarea></div>
-      <div class="modal-actions">
-        <button type="button" class="btn" onclick="closeModal({target:document.getElementById('overlay')})">Cancel</button>
-        <button type="submit" class="btn btn-primary">Create Workflow</button>
-      </div>
-    </form>
-  `);
+function forceCloseModal() {
+  document.getElementById('overlay').classList.remove('open');
 }
 
-async function submitCreateWorkflow(e) {
-  e.preventDefault();
+// ── Create Workflow (with Notion DB picker) ─
+async function openCreateWorkflow() {
+  openModal(`
+    <h2>New Workflow</h2>
+    <p class="subtitle">Connect a Notion database to an n8n webhook</p>
+    <div id="wf-db-section">
+      <div class="form-group">
+        <label>Notion Database</label>
+        <div style="display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px">
+          <div class="spinner"></div> Loading your databases…
+        </div>
+      </div>
+    </div>
+    <div class="form-group"><label>Workflow Name</label><input id="wf-name" placeholder="e.g. Content Pipeline"></div>
+    <div class="form-group"><label>n8n Webhook URL</label><input id="wf-hook" placeholder="https://your-n8n.com/webhook/…"></div>
+    <div class="form-group"><label>Permissions (JSON, optional)</label><textarea id="wf-perms" placeholder='{"can_create": true}'>{}</textarea></div>
+    <div class="modal-actions">
+      <button type="button" class="btn" onclick="forceCloseModal()">Cancel</button>
+      <button class="btn btn-primary" id="wf-create-btn" onclick="submitCreateWorkflow()">Create Workflow</button>
+    </div>
+  `);
+
+  // Load databases
+  try {
+    const dbs = await api('/api/notion/databases');
+    const section = document.getElementById('wf-db-section');
+    if (!section) return;
+
+    if (!dbs.length) {
+      section.innerHTML = `
+        <div class="form-group">
+          <label>Notion Database</label>
+          <div class="err-banner" style="margin:0">
+            <div class="err-banner-title">No databases found</div>
+            <div class="err-banner-body">Make sure your Notion integration has access to at least one database.</div>
+          </div>
+          <button class="manual-toggle" onclick="showManualDbInput()">Enter database ID manually</button>
+        </div>`;
+    } else {
+      const options = dbs.map(db => {
+        const title = getDbTitle(db);
+        return `<option value="${db.id}">${esc(title)} (${db.id.slice(0,8)}…)</option>`;
+      }).join('');
+      section.innerHTML = `
+        <div class="form-group" id="wf-db-group">
+          <label>Notion Database</label>
+          <select id="wf-db-select">${options}</select>
+          <div class="form-hint">${dbs.length} database${dbs.length !== 1 ? 's' : ''} accessible to your integration</div>
+          <button class="manual-toggle" onclick="showManualDbInput()">Enter ID manually instead</button>
+        </div>`;
+    }
+  } catch(e) {
+    const section = document.getElementById('wf-db-section');
+    if (!section) return;
+    section.innerHTML = `
+      <div class="form-group">
+        <label>Notion Database ID</label>
+        <div class="err-banner" style="margin-bottom:8px">
+          <div class="err-banner-title">Could not load databases</div>
+          <div class="err-banner-body">${esc(e.message)}<br>Connect Notion OAuth first, or enter the ID manually.</div>
+        </div>
+        <input id="wf-db" placeholder="abc123def456…" required>
+      </div>`;
+  }
+}
+
+function showManualDbInput() {
+  const group = document.getElementById('wf-db-group') || document.getElementById('wf-db-section').querySelector('.form-group');
+  if (group) {
+    group.innerHTML = `
+      <label>Notion Database ID</label>
+      <input id="wf-db" placeholder="abc123def456…" required>
+      <div class="form-hint">Paste the database ID from your Notion URL</div>`;
+  }
+}
+
+function getDbTitle(db) {
+  if (db.title && db.title.length) return db.title.map(t => t.plain_text).join('') || 'Untitled';
+  return 'Untitled Database';
+}
+
+async function submitCreateWorkflow() {
+  const btn = document.getElementById('wf-create-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Creating…'; }
+
+  // Get database ID - from select or manual input
+  let dbId;
+  const sel = document.getElementById('wf-db-select');
+  const manInput = document.getElementById('wf-db');
+  if (sel) dbId = sel.value.trim();
+  else if (manInput) dbId = manInput.value.trim();
+
+  const name = (document.getElementById('wf-name')?.value || '').trim();
+  const hook = (document.getElementById('wf-hook')?.value || '').trim();
+
+  if (!dbId || !name || !hook) {
+    toast('Name, database, and webhook URL are required', 'error');
+    if (btn) { btn.disabled = false; btn.textContent = 'Create Workflow'; }
+    return;
+  }
+
   let perms;
-  try { perms = JSON.parse(document.getElementById('wf-perms').value || '{}'); } catch { perms = {}; }
+  try { perms = JSON.parse(document.getElementById('wf-perms')?.value || '{}'); }
+  catch { perms = {}; }
+
   try {
     await api('/api/workflows', {
       method: 'POST',
-      body: {
-        name: document.getElementById('wf-name').value,
-        notion_database_id: document.getElementById('wf-db').value,
-        n8n_webhook_url: document.getElementById('wf-hook').value,
-        permissions: perms
-      }
+      body: { name, notion_database_id: dbId, n8n_webhook_url: hook, permissions: perms }
     });
-    closeModal({ target: document.getElementById('overlay') });
+    forceCloseModal();
     toast('Workflow created');
+    workflows = [];
     navigate(currentView === 'dashboard' ? 'dashboard' : 'workflows');
-  } catch(e) { toast(e.message, 'error'); }
+  } catch(e) {
+    toast(e.message, 'error');
+    if (btn) { btn.disabled = false; btn.textContent = 'Create Workflow'; }
+  }
 }
 
+// ── Create Page modal ───────────────────────
 function openCreatePage(workflowId) {
   openModal(`
     <h2>Create Page</h2>
-    <p class="subtitle">Add a new page to this workflow's Notion database</p>
-    <form onsubmit="submitCreatePage(event, '${workflowId}')">
+    <p class="subtitle">Add a new page to the Notion database</p>
+    <form onsubmit="submitCreatePage(event,'${workflowId}')">
       <div class="form-group"><label>Properties (JSON)</label>
         <textarea id="page-props" rows="6" required placeholder='{"Name": {"title": [{"text": {"content": "My Page"}}]}}'></textarea>
+        <div class="form-hint">Must match the database schema. The "Name"/"Title" property is required.</div>
       </div>
       <div class="modal-actions">
-        <button type="button" class="btn" onclick="closeModal({target:document.getElementById('overlay')})">Cancel</button>
+        <button type="button" class="btn" onclick="forceCloseModal()">Cancel</button>
         <button type="submit" class="btn btn-primary">Create Page</button>
       </div>
     </form>
@@ -742,22 +1090,23 @@ async function submitCreatePage(e, workflowId) {
   try {
     const props = JSON.parse(document.getElementById('page-props').value);
     await api(`/api/workflow/${workflowId}/page`, { method: 'POST', body: { properties: props } });
-    closeModal({ target: document.getElementById('overlay') });
+    forceCloseModal();
     toast('Page created');
     navigate('workflow-pages', workflowId);
   } catch(e) { toast(e.message, 'error'); }
 }
 
+// ── Create & Trigger modal ──────────────────
 function openCreateAndTrigger(workflowId) {
   openModal(`
     <h2>Create &amp; Trigger</h2>
     <p class="subtitle">Create a Notion page and notify n8n</p>
-    <form onsubmit="submitCreateAndTrigger(event, '${workflowId}')">
+    <form onsubmit="submitCreateAndTrigger(event,'${workflowId}')">
       <div class="form-group"><label>Properties (JSON)</label>
         <textarea id="trigger-props" rows="6" required placeholder='{"Name": {"title": [{"text": {"content": "Triggered Page"}}]}}'></textarea>
       </div>
       <div class="modal-actions">
-        <button type="button" class="btn" onclick="closeModal({target:document.getElementById('overlay')})">Cancel</button>
+        <button type="button" class="btn" onclick="forceCloseModal()">Cancel</button>
         <button type="submit" class="btn btn-primary">Create &amp; Trigger n8n</button>
       </div>
     </form>
@@ -769,22 +1118,23 @@ async function submitCreateAndTrigger(e, workflowId) {
   try {
     const props = JSON.parse(document.getElementById('trigger-props').value);
     const res = await api(`/api/workflow/${workflowId}/create-and-trigger`, { method: 'POST', body: { properties: props } });
-    closeModal({ target: document.getElementById('overlay') });
-    toast(`Page created (${res.page_id.slice(0,8)}...) + n8n triggered`);
+    forceCloseModal();
+    toast(`Page created (${res.page_id.slice(0,8)}…) + n8n triggered`);
     navigate('workflow-pages', workflowId);
   } catch(e) { toast(e.message, 'error'); }
 }
 
+// ── Edit Page modal ─────────────────────────
 function openEditPage(workflowId, pageId) {
   openModal(`
     <h2>Update Page</h2>
     <p class="subtitle mono">${pageId}</p>
-    <form onsubmit="submitEditPage(event, '${workflowId}', '${pageId}')">
+    <form onsubmit="submitEditPage(event,'${workflowId}','${pageId}')">
       <div class="form-group"><label>Properties (JSON)</label>
         <textarea id="edit-props" rows="6" required placeholder='{"Name": {"title": [{"text": {"content": "Updated"}}]}}'></textarea>
       </div>
       <div class="modal-actions">
-        <button type="button" class="btn" onclick="closeModal({target:document.getElementById('overlay')})">Cancel</button>
+        <button type="button" class="btn" onclick="forceCloseModal()">Cancel</button>
         <button type="submit" class="btn btn-primary">Update</button>
       </div>
     </form>
@@ -796,13 +1146,13 @@ async function submitEditPage(e, workflowId, pageId) {
   try {
     const props = JSON.parse(document.getElementById('edit-props').value);
     await api(`/api/workflow/${workflowId}/page/${pageId}`, { method: 'PATCH', body: { properties: props } });
-    closeModal({ target: document.getElementById('overlay') });
+    forceCloseModal();
     toast('Page updated');
     navigate('workflow-pages', workflowId);
   } catch(e) { toast(e.message, 'error'); }
 }
 
-async function archivePage(workflowId, pageId) {
+async function doArchivePage(workflowId, pageId) {
   if (!confirm('Archive this page?')) return;
   try {
     await api(`/api/workflow/${workflowId}/page/${pageId}`, { method: 'DELETE' });
@@ -811,7 +1161,7 @@ async function archivePage(workflowId, pageId) {
   } catch(e) { toast(e.message, 'error'); }
 }
 
-// ── Helpers ────────────────────────────────
+// ── Helpers ─────────────────────────────────
 function esc(s) {
   const d = document.createElement('div');
   d.textContent = s || '';
@@ -827,8 +1177,16 @@ function getTitle(page) {
   return 'Untitled';
 }
 
-// ── Init ───────────────────────────────────
-navigate('dashboard');
+// ── Init ────────────────────────────────────
+// Check for auth error on load
+const _initParams = new URLSearchParams(location.search);
+if (_initParams.get('auth_error')) {
+  navigate('connect');
+} else if (_initParams.get('connected') === 'true') {
+  navigate('connect');
+} else {
+  navigate('dashboard');
+}
 </script>
 </body>
 </html>
