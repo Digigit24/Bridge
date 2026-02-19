@@ -429,6 +429,14 @@ async function start() {
   try {
     await initDB();
     logger.info('DB', 'Tables initialized');
+
+    // Log which Notion auth method is active at startup
+    if (process.env.NOTION_TOKEN) {
+      logger.info('Auth', 'Notion token loaded from NOTION_TOKEN env var (internal integration)');
+    } else {
+      logger.warn('Auth', 'NOTION_TOKEN env var not set — will require OAuth token in DB');
+    }
+
     app.listen(PORT, () => {
       logger.info('Bridge', `API running on port ${PORT}`);
     });
