@@ -40,7 +40,7 @@ app.get('/auth/notion/status', async (_req, res) => {
   try {
     const { getLatestToken } = require('./db');
     const token = await getLatestToken();
-    const via = process.env.NOTION_TOKEN ? 'api_key' : 'oauth';
+    const via = process.env.NOTION_TOKEN?.trim() ? 'api_key' : 'oauth';
     res.json({ connected: !!token, configured: !!process.env.NOTION_CLIENT_ID, via });
   } catch {
     res.json({ connected: false, configured: !!process.env.NOTION_CLIENT_ID, via: null });
@@ -143,8 +143,19 @@ app.get('/api/notion/databases', async (_req, res) => {
     const dbs = await listDatabases();
     res.json(dbs);
   } catch (err) {
+    const notionCode = err.response?.data?.code;
+    const notionMsg = err.response?.data?.message || err.message;
+    if (notionCode === 'unauthorized' || err.response?.status === 401) {
+      const via = process.env.NOTION_TOKEN?.trim() ? 'NOTION_TOKEN env var' : 'OAuth token in database';
+      logger.error('Notion', 'Token rejected by Notion API', { via, hint: 'Token may be invalid, revoked, or wrong type' });
+      return res.status(401).json({
+        error: `Notion API rejected the token: ${notionMsg}`,
+        via,
+        hint: 'Verify your token is correct and not revoked at notion.so/my-integrations'
+      });
+    }
     logger.error('Notion', 'Failed to list databases', { message: err.message });
-    res.status(500).json({ error: err.response?.data?.message || err.message });
+    res.status(500).json({ error: notionMsg });
   }
 });
 

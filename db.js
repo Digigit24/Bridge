@@ -61,7 +61,8 @@ async function initDB() {
 
 async function getLatestToken() {
   // 1. Check env var first (internal integration token — works without OAuth)
-  if (process.env.NOTION_TOKEN) return process.env.NOTION_TOKEN;
+  const envToken = process.env.NOTION_TOKEN?.trim();
+  if (envToken) return envToken;
 
   // 2. Fall back to OAuth token stored in DB
   const res = await pool.query(
