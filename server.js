@@ -40,9 +40,26 @@ app.get('/auth/notion/status', async (_req, res) => {
   try {
     const { getLatestToken } = require('./db');
     const token = await getLatestToken();
-    res.json({ connected: !!token, configured: !!process.env.NOTION_CLIENT_ID });
+    const via = process.env.NOTION_TOKEN ? 'api_key' : 'oauth';
+    res.json({ connected: !!token, configured: !!process.env.NOTION_CLIENT_ID, via });
   } catch {
-    res.json({ connected: false, configured: !!process.env.NOTION_CLIENT_ID });
+    res.json({ connected: false, configured: !!process.env.NOTION_CLIENT_ID, via: null });
+  }
+});
+
+// Save a Notion internal integration token directly (no OAuth needed)
+app.post('/auth/notion/token', async (req, res) => {
+  const { token } = req.body;
+  if (!token || !token.startsWith('secret_')) {
+    return res.status(400).json({ error: 'Invalid token — must start with secret_' });
+  }
+  try {
+    await saveToken('manual', token);
+    logger.info('Auth', 'Internal integration token saved manually');
+    res.json({ saved: true });
+  } catch (err) {
+    logger.error('Auth', 'Failed to save token', { message: err.message });
+    res.status(500).json({ error: 'Failed to save token' });
   }
 });
 

@@ -806,23 +806,22 @@ async function renderConnect() {
   const authErrorDetail = params.get('auth_error_detail');
   const justConnected = params.get('connected') === 'true';
 
-  // Clean URL without reloading
-  if (authError || justConnected) {
-    history.replaceState({}, '', '/');
-  }
+  if (authError || justConnected) history.replaceState({}, '', '/');
 
   let configOk = false;
   let connected = justConnected;
+  let via = null;
   try {
     const status = await api('/auth/notion/status');
     configOk = status.configured;
     connected = connected || status.connected;
+    via = status.via;
   } catch(e) {}
 
   const c = document.getElementById('content');
   c.innerHTML = `
-    <h1>Notion OAuth</h1>
-    <p class="subtitle">Connect your Notion workspace to Bridge</p>
+    <h1>Notion Connection</h1>
+    <p class="subtitle">Connect Bridge to your Notion workspace</p>
 
     ${authError ? `
       <div class="err-banner">
@@ -834,36 +833,79 @@ async function renderConnect() {
     ` : ''}
 
     ${connected ? `
-      <div class="card" style="border-color:#14532d;margin-bottom:12px">
-        <div style="color:#4ade80;font-weight:600">&#10003; Notion workspace connected</div>
-        <div style="font-size:13px;color:var(--muted);margin-top:4px">Your workspace token is saved. You can now create workflows.</div>
+      <div class="card" style="border-color:#14532d;margin-bottom:16px">
+        <div style="color:#4ade80;font-weight:600;margin-bottom:4px">&#10003; Notion workspace connected</div>
+        <div style="font-size:13px;color:var(--muted)">
+          ${via === 'api_key'
+            ? 'Connected via <span class="mono">NOTION_TOKEN</span> environment variable.'
+            : 'Connected via OAuth. Your workspace token is saved in the database.'}
+        </div>
+        <div style="margin-top:10px;font-size:13px;color:var(--muted)">You can now create workflows and browse your Notion pages.</div>
       </div>
     ` : ''}
 
-    <div class="card">
-      ${!configOk ? `
-        <div class="err-banner">
-          <div class="err-banner-title">OAuth not configured</div>
-          <div class="err-banner-body">Set <span class="mono">NOTION_CLIENT_ID</span>, <span class="mono">NOTION_CLIENT_SECRET</span>, and <span class="mono">NOTION_REDIRECT_URI</span> in your <span class="mono">.env</span> file, then restart the server.</div>
-        </div>
-      ` : `
-        <p style="font-size:13px;margin-bottom:16px">Click below to start the Notion OAuth flow. You'll authorize Bridge in Notion then be sent back here.</p>
-        <a href="/auth/notion/login" class="btn btn-primary">Connect Notion Workspace</a>
-      `}
-    </div>
+    <!-- ── Option A: API Key (works right now, no SSL needed) ── -->
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-title" style="margin-bottom:4px">Option A &mdash; Internal Integration Token <span class="badge badge-green" style="vertical-align:middle;margin-left:6px">Recommended</span></div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Works immediately. No redirect URI or SSL required. Create a Notion integration and paste the token below.</p>
 
-    <div class="card" style="margin-top:12px">
-      <div class="card-title" style="margin-bottom:12px">Setup Checklist</div>
-      <div style="font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:8px">
-        <div>1. Create a <strong>public</strong> integration at <a href="https://www.notion.so/my-integrations" target="_blank">notion.so/my-integrations</a></div>
-        <div>2. Set OAuth redirect URI to <span class="mono">${location.origin}/auth/notion/callback</span></div>
-        <div>3. Copy Client ID &amp; Secret into your <span class="mono">.env</span></div>
-        <div>4. Restart the server: <span class="mono">node server.js</span></div>
-        <div>5. Click "Connect Notion Workspace" above</div>
-        <div>6. Authorize Bridge in Notion</div>
+      <div style="font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:6px;margin-bottom:16px">
+        <div>1. Go to <a href="https://www.notion.so/my-integrations" target="_blank">notion.so/my-integrations</a> &rarr; <strong>New integration</strong></div>
+        <div>2. Set type to <strong>Internal</strong>, give it a name, save</div>
+        <div>3. Copy the <strong>Internal Integration Token</strong> (<span class="mono">secret_…</span>)</div>
+        <div>4. Open each Notion database/page you want to use &rarr; ••• &rarr; <strong>Add connections</strong> &rarr; select your integration</div>
+        <div>5. Paste the token below and click Connect</div>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:flex-start">
+        <input id="notion-token-input" placeholder="secret_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+          style="flex:1;padding:8px 12px;font-size:13px;font-family:'SF Mono',Consolas,monospace;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--fg);outline:none">
+        <button class="btn btn-primary" onclick="saveApiToken()">Connect</button>
+      </div>
+      <div id="token-save-msg" style="margin-top:8px;font-size:12px;display:none"></div>
+
+      <div style="margin-top:12px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:6px;font-size:12px;color:var(--muted)">
+        Or set it permanently in your <span class="mono">.env</span> file (no restart needed to connect manually above):
+        <pre style="margin-top:6px;color:var(--fg)">NOTION_TOKEN=secret_your_token_here</pre>
       </div>
     </div>
+
+    <!-- ── Option B: OAuth (needs SSL + redirect URI) ── -->
+    <div class="card">
+      <div class="card-title" style="margin-bottom:4px">Option B &mdash; OAuth <span class="badge" style="vertical-align:middle;margin-left:6px;color:var(--muted)">Needs SSL</span></div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:14px">For production deployments with a public HTTPS domain. Requires setting up a public integration with a redirect URI.</p>
+      ${!configOk ? `
+        <div style="font-size:13px;color:var(--muted);background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 14px">
+          Configure <span class="mono">NOTION_CLIENT_ID</span>, <span class="mono">NOTION_CLIENT_SECRET</span>, and
+          <span class="mono">NOTION_REDIRECT_URI=${location.origin}/auth/notion/callback</span> in your <span class="mono">.env</span> to enable OAuth.
+        </div>
+      ` : `
+        <a href="/auth/notion/login" class="btn btn-primary">Connect via OAuth</a>
+      `}
+    </div>
   `;
+}
+
+async function saveApiToken() {
+  const input = document.getElementById('notion-token-input');
+  const msg = document.getElementById('token-save-msg');
+  const token = input?.value.trim();
+
+  if (!token) { toast('Paste your integration token first', 'error'); return; }
+  if (!token.startsWith('secret_')) { toast('Token must start with secret_', 'error'); return; }
+
+  try {
+    await api('/auth/notion/token', { method: 'POST', body: { token } });
+    if (msg) {
+      msg.style.display = 'block';
+      msg.style.color = '#4ade80';
+      msg.textContent = '✓ Token saved. Reloading status…';
+    }
+    toast('Notion connected via API key');
+    setTimeout(() => renderConnect(), 800);
+  } catch(e) {
+    toast(e.message, 'error');
+  }
 }
 
 // ── Logs ────────────────────────────────────
