@@ -388,23 +388,44 @@ async function renderWorkflowPages(id) {
 }
 
 // ── Notion Connect ─────────────────────────
-function renderConnect() {
+async function renderConnect() {
+  const justConnected = new URLSearchParams(location.search).get('connected') === 'true';
+  let configOk = false;
+  let connected = justConnected;
+  try {
+    const status = await api('/auth/notion/status');
+    configOk = status.configured;
+    connected = connected || status.connected;
+  } catch(e) {}
+
   const c = document.getElementById('content');
   c.innerHTML = `
     <h1>Notion OAuth</h1>
     <p class="subtitle">Connect your Notion workspace to this Bridge</p>
+    ${connected ? `<div class="card" style="border-color:#14532d;margin-bottom:12px">
+      <div style="color:#4ade80;font-weight:600">Notion workspace connected</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px">Your workspace token is saved. You can now create workflows and manage pages.</div>
+    </div>` : ''}
     <div class="card">
-      <p style="font-size:14px;margin-bottom:16px">Click the button below to start the Notion OAuth flow. You'll be redirected to Notion to authorize this application, then sent back here.</p>
-      <a href="/auth/notion/login" class="btn btn-primary">Connect Notion Workspace</a>
+      ${!configOk ? `
+        <div style="background:#1c1917;border:1px solid #7f1d1d;border-radius:6px;padding:12px 16px;margin-bottom:16px">
+          <div style="color:#f87171;font-weight:600;font-size:13px;margin-bottom:4px">OAuth not configured</div>
+          <div style="color:var(--muted);font-size:12px">Set <span class="mono">NOTION_CLIENT_ID</span>, <span class="mono">NOTION_CLIENT_SECRET</span>, and <span class="mono">NOTION_REDIRECT_URI</span> in your <span class="mono">.env</span> file, then restart the server.</div>
+        </div>
+      ` : `
+        <p style="font-size:14px;margin-bottom:16px">Click the button below to start the Notion OAuth flow. You'll be redirected to Notion to authorize this application, then sent back here.</p>
+        <a href="/auth/notion/login" class="btn btn-primary">Connect Notion Workspace</a>
+      `}
     </div>
     <div class="card" style="margin-top:12px">
       <div class="card-title" style="margin-bottom:12px">Setup Checklist</div>
       <div style="font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:8px">
-        <div>1. Create a <strong>public</strong> Notion integration at notion.so/my-integrations</div>
+        <div>1. Create a <strong>public</strong> Notion integration at <a href="https://www.notion.so/my-integrations" target="_blank">notion.so/my-integrations</a></div>
         <div>2. Set redirect URI to <span class="mono">${location.origin}/auth/notion/callback</span></div>
-        <div>3. Copy Client ID and Client Secret into your <span class="mono">.env</span></div>
-        <div>4. Click "Connect Notion Workspace" above</div>
-        <div>5. Authorize the integration in Notion</div>
+        <div>3. Copy Client ID and Client Secret into your <span class="mono">.env</span> file</div>
+        <div>4. Restart the server: <span class="mono">node server.js</span></div>
+        <div>5. Click "Connect Notion Workspace" above</div>
+        <div>6. Authorize the integration in Notion</div>
       </div>
     </div>
   `;

@@ -32,8 +32,28 @@ app.get('/health', (_req, res) => {
 
 // ─── Notion OAuth ────────────────────────────────────────
 
+app.get('/auth/notion/status', async (_req, res) => {
+  try {
+    const { getLatestToken } = require('./db');
+    const token = await getLatestToken();
+    res.json({ connected: true, configured: !!process.env.NOTION_CLIENT_ID });
+  } catch {
+    res.json({ connected: false, configured: !!process.env.NOTION_CLIENT_ID });
+  }
+});
+
 app.get('/auth/notion/login', (_req, res) => {
-  const url = `https://api.notion.com/v1/oauth/authorize?client_id=${process.env.NOTION_CLIENT_ID}&response_type=code&owner=user&redirect_uri=${encodeURIComponent(process.env.NOTION_REDIRECT_URI)}`;
+  const clientId = process.env.NOTION_CLIENT_ID;
+  const redirectUri = process.env.NOTION_REDIRECT_URI;
+
+  if (!clientId || !redirectUri) {
+    return res.status(500).json({
+      error: 'Notion OAuth not configured',
+      fix: 'Set NOTION_CLIENT_ID and NOTION_REDIRECT_URI in your .env file'
+    });
+  }
+
+  const url = `https://api.notion.com/v1/oauth/authorize?client_id=${clientId}&response_type=code&owner=user&redirect_uri=${encodeURIComponent(redirectUri)}`;
   res.redirect(url);
 });
 
