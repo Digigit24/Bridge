@@ -43,4 +43,19 @@ async function archivePage(pageId) {
   return res.data;
 }
 
-module.exports = { createPage, listPages, updatePage, archivePage };
+async function fetchPageBlocks(pageId) {
+  const headers = await notionHeaders();
+  const blocks = [];
+  let cursor;
+
+  do {
+    const url = `${NOTION_API}/blocks/${pageId}/children` + (cursor ? `?start_cursor=${cursor}` : '');
+    const res = await axios.get(url, { headers });
+    blocks.push(...res.data.results);
+    cursor = res.data.has_more ? res.data.next_cursor : null;
+  } while (cursor);
+
+  return blocks;
+}
+
+module.exports = { createPage, listPages, updatePage, archivePage, fetchPageBlocks };

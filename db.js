@@ -8,6 +8,9 @@ const pool = new Pool({
 async function initDB() {
   const client = await pool.connect();
   try {
+    // Enable pgvector extension
+    await client.query('CREATE EXTENSION IF NOT EXISTS vector');
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS notion_tokens (
         id SERIAL PRIMARY KEY,
@@ -26,7 +29,31 @@ async function initDB() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    console.log('[DB] Tables initialized');
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS knowledge_documents (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        workflow_id UUID REFERENCES workflows(id) ON DELETE CASCADE,
+        source_type TEXT NOT NULL,
+        source_id TEXT NOT NULL,
+        title TEXT,
+        content TEXT,
+        metadata JSONB DEFAULT '{}',
+        updated_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS knowledge_chunks (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        document_id UUID REFERENCES knowledge_documents(id) ON DELETE CASCADE,
+        workflow_id UUID,
+        chunk_index INTEGER,
+        content TEXT,
+        embedding vector(1536),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('[DB] Tables initialized (with pgvector)');
   } finally {
     client.release();
   }

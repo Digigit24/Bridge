@@ -128,6 +128,14 @@ tr:hover td{background:#0f0f11}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       Pages
     </button>
+    <button class="nav-btn" onclick="navigate('knowledge')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+      Knowledge
+    </button>
+    <button class="nav-btn" onclick="navigate('rag')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      RAG Query
+    </button>
     <div class="nav-section">Settings</div>
     <button class="nav-btn" onclick="navigate('connect')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
@@ -177,15 +185,19 @@ function toast(msg, type = 'success') {
 function navigate(view, data) {
   currentView = view;
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  const idx = { dashboard: 0, workflows: 1, pages: 2, connect: 3 }[view];
+  const idx = { dashboard: 0, workflows: 1, pages: 2, knowledge: 3, rag: 4, connect: 5 }[view];
   if (idx !== undefined) document.querySelectorAll('.nav-btn')[idx]?.classList.add('active');
 
   if (view === 'dashboard') renderDashboard();
   else if (view === 'workflows') renderWorkflows();
   else if (view === 'pages') renderPageSelect();
+  else if (view === 'knowledge') renderKnowledgeSelect();
+  else if (view === 'rag') renderRagSelect();
   else if (view === 'connect') renderConnect();
   else if (view === 'workflow-detail') renderWorkflowDetail(data);
   else if (view === 'workflow-pages') renderWorkflowPages(data);
+  else if (view === 'workflow-knowledge') renderWorkflowKnowledge(data);
+  else if (view === 'workflow-rag') renderWorkflowRag(data);
 }
 
 // ── Dashboard ──────────────────────────────
@@ -289,8 +301,10 @@ async function renderWorkflowDetail(id) {
           <span class="mono">${wf.id}</span>
         </div>
       </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-sm" onclick="navigate('workflow-pages','${wf.id}')">View Pages</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-sm" onclick="navigate('workflow-pages','${wf.id}')">Pages</button>
+        <button class="btn btn-sm" onclick="navigate('workflow-knowledge','${wf.id}')">Knowledge</button>
+        <button class="btn btn-sm" onclick="navigate('workflow-rag','${wf.id}')">RAG Query</button>
         <button class="btn btn-primary btn-sm" onclick="openCreateAndTrigger('${wf.id}')">Create &amp; Trigger</button>
       </div>
     </div>
@@ -300,7 +314,7 @@ async function renderWorkflowDetail(id) {
       <div class="form-group"><label>Permissions (JSON)</label><textarea readonly>${JSON.stringify(perms, null, 2)}</textarea></div>
       <div class="form-group"><label>Created</label><input readonly value="${new Date(wf.created_at).toLocaleString()}"></div>
     </div>
-    <h2 style="font-size:16px;font-weight:600;margin-bottom:12px">API Endpoints for this Workflow</h2>
+    <h2 style="font-size:16px;font-weight:600;margin-bottom:12px">API Endpoints</h2>
     <div class="card" style="font-size:13px">
       <table style="width:100%">
         <tr><td class="card-meta" style="width:80px">POST</td><td class="mono">/api/workflow/${wf.id}/page</td><td class="card-meta">Create page</td></tr>
@@ -308,6 +322,11 @@ async function renderWorkflowDetail(id) {
         <tr><td class="card-meta">PATCH</td><td class="mono">/api/workflow/${wf.id}/page/:page_id</td><td class="card-meta">Update page</td></tr>
         <tr><td class="card-meta">DELETE</td><td class="mono">/api/workflow/${wf.id}/page/:page_id</td><td class="card-meta">Archive page</td></tr>
         <tr><td class="card-meta">POST</td><td class="mono">/api/workflow/${wf.id}/create-and-trigger</td><td class="card-meta">Create + n8n</td></tr>
+        <tr><td colspan="3" style="padding:4px 16px;border-bottom:none"></td></tr>
+        <tr><td class="card-meta">POST</td><td class="mono">/api/workflow/${wf.id}/index-notion-page</td><td class="card-meta">Index page</td></tr>
+        <tr><td class="card-meta">GET</td><td class="mono">/api/workflow/${wf.id}/documents</td><td class="card-meta">List docs</td></tr>
+        <tr><td class="card-meta">POST</td><td class="mono">/api/workflow/${wf.id}/query</td><td class="card-meta">RAG query</td></tr>
+        <tr><td class="card-meta">POST</td><td class="mono">/api/workflow/${wf.id}/query-and-trigger</td><td class="card-meta">RAG + n8n</td></tr>
       </table>
     </div>
   `;
@@ -384,6 +403,230 @@ async function renderWorkflowPages(id) {
     `;
   } catch(e) {
     document.getElementById('pages-loading').innerHTML = `<p style="color:var(--danger)">${esc(e.message)}</p>`;
+  }
+}
+
+// ── Knowledge (select workflow) ─────────────
+function renderKnowledgeSelect() {
+  if (!workflows.length) {
+    api('/api/workflows').then(w => { workflows = w; renderKnowledgeSelect(); }).catch(() => {});
+    return;
+  }
+  if (workflows.length === 1) return navigate('workflow-knowledge', workflows[0].id);
+  const c = document.getElementById('content');
+  c.innerHTML = `
+    <h1>Knowledge Base</h1>
+    <p class="subtitle">Select a workflow to manage its indexed documents</p>
+    ${workflows.map(w => `
+      <div class="card" style="cursor:pointer" onclick="navigate('workflow-knowledge','${w.id}')">
+        <div class="card-header">
+          <span class="card-title">${esc(w.name)}</span>
+          <span class="badge badge-blue">&rarr;</span>
+        </div>
+      </div>
+    `).join('')}
+  `;
+}
+
+// ── Workflow Knowledge ──────────────────────
+async function renderWorkflowKnowledge(id) {
+  let wf = workflows.find(w => w.id === id);
+  if (!wf) { try { workflows = await api('/api/workflows'); wf = workflows.find(w => w.id === id); } catch(e){} }
+  if (!wf) return toast('Workflow not found','error');
+
+  const c = document.getElementById('content');
+  c.innerHTML = `
+    <button class="back-btn" onclick="navigate('workflows')">&larr; Back</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <h1>${esc(wf.name)} &mdash; Knowledge</h1>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm" onclick="openIndexPage('${wf.id}')">+ Index Notion Page</button>
+        <button class="btn btn-sm" onclick="navigate('workflow-rag','${wf.id}')">RAG Query</button>
+      </div>
+    </div>
+    <p class="subtitle">Indexed documents for this workflow</p>
+    <div id="docs-loading" class="empty"><p>Loading documents...</p></div>
+    <div id="docs-table"></div>
+  `;
+
+  try {
+    const docs = await api(`/api/workflow/${id}/documents`);
+    document.getElementById('docs-loading').style.display = 'none';
+    const tbl = document.getElementById('docs-table');
+    if (!docs.length) {
+      tbl.innerHTML = '<div class="empty"><p>No documents indexed yet. Click "Index Notion Page" to start.</p></div>';
+      return;
+    }
+    tbl.innerHTML = `
+      <div class="table-wrap"><table>
+        <thead><tr><th>Title</th><th>Source</th><th>Source ID</th><th>Updated</th><th></th></tr></thead>
+        <tbody>${docs.map(d => `<tr>
+          <td><strong>${esc(d.title || 'Untitled')}</strong></td>
+          <td><span class="badge badge-blue">${esc(d.source_type)}</span></td>
+          <td><span class="mono">${esc(d.source_id).slice(0,16)}...</span></td>
+          <td class="card-meta">${d.updated_at ? new Date(d.updated_at).toLocaleString() : '-'}</td>
+          <td class="td-actions">
+            <button class="btn btn-sm" onclick="reindexDoc('${id}','${esc(d.source_id)}')">Re-index</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteDoc('${id}','${d.id}')">Delete</button>
+          </td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+    `;
+  } catch(e) {
+    document.getElementById('docs-loading').innerHTML = `<p style="color:var(--danger)">${esc(e.message)}</p>`;
+  }
+}
+
+function openIndexPage(workflowId) {
+  openModal(`
+    <h2>Index Notion Page</h2>
+    <p class="subtitle">Extract and embed a Notion page into the knowledge base</p>
+    <form onsubmit="submitIndexPage(event, '${workflowId}')">
+      <div class="form-group"><label>Notion Page ID</label><input id="idx-page-id" required placeholder="e.g. 12abc34d-5e6f-..."></div>
+      <div class="modal-actions">
+        <button type="button" class="btn" onclick="closeModal({target:document.getElementById('overlay')})">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="idx-submit-btn">Index Page</button>
+      </div>
+    </form>
+  `);
+}
+
+async function submitIndexPage(e, workflowId) {
+  e.preventDefault();
+  const btn = document.getElementById('idx-submit-btn');
+  btn.textContent = 'Indexing...';
+  btn.disabled = true;
+  try {
+    const res = await api(`/api/workflow/${workflowId}/index-notion-page`, {
+      method: 'POST',
+      body: { notion_page_id: document.getElementById('idx-page-id').value }
+    });
+    closeModal({ target: document.getElementById('overlay') });
+    toast(`Indexed "${res.title}" (${res.chunks} chunks)`);
+    navigate('workflow-knowledge', workflowId);
+  } catch(e) {
+    btn.textContent = 'Index Page';
+    btn.disabled = false;
+    toast(e.message, 'error');
+  }
+}
+
+async function reindexDoc(workflowId, sourceId) {
+  try {
+    const res = await api(`/api/workflow/${workflowId}/index-notion-page`, {
+      method: 'POST',
+      body: { notion_page_id: sourceId }
+    });
+    toast(`Re-indexed "${res.title}" (${res.chunks} chunks)`);
+    navigate('workflow-knowledge', workflowId);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function deleteDoc(workflowId, docId) {
+  if (!confirm('Delete this document and all its chunks?')) return;
+  try {
+    await api(`/api/workflow/${workflowId}/document/${docId}`, { method: 'DELETE' });
+    toast('Document deleted');
+    navigate('workflow-knowledge', workflowId);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ── RAG Query (select workflow) ─────────────
+function renderRagSelect() {
+  if (!workflows.length) {
+    api('/api/workflows').then(w => { workflows = w; renderRagSelect(); }).catch(() => {});
+    return;
+  }
+  if (workflows.length === 1) return navigate('workflow-rag', workflows[0].id);
+  const c = document.getElementById('content');
+  c.innerHTML = `
+    <h1>RAG Query</h1>
+    <p class="subtitle">Select a workflow to query its knowledge base</p>
+    ${workflows.map(w => `
+      <div class="card" style="cursor:pointer" onclick="navigate('workflow-rag','${w.id}')">
+        <div class="card-header">
+          <span class="card-title">${esc(w.name)}</span>
+          <span class="badge badge-blue">&rarr;</span>
+        </div>
+      </div>
+    `).join('')}
+  `;
+}
+
+// ── Workflow RAG ────────────────────────────
+async function renderWorkflowRag(id) {
+  let wf = workflows.find(w => w.id === id);
+  if (!wf) { try { workflows = await api('/api/workflows'); wf = workflows.find(w => w.id === id); } catch(e){} }
+  if (!wf) return toast('Workflow not found','error');
+
+  const c = document.getElementById('content');
+  c.innerHTML = `
+    <button class="back-btn" onclick="navigate('workflows')">&larr; Back</button>
+    <h1>${esc(wf.name)} &mdash; RAG Query</h1>
+    <p class="subtitle">Search the knowledge base using natural language</p>
+    <div class="card">
+      <form onsubmit="submitRagQuery(event, '${wf.id}')">
+        <div class="form-group"><label>Query</label><input id="rag-query" required placeholder="e.g. How does the onboarding process work?"></div>
+        <div class="form-row">
+          <div class="form-group"><label>Top K results</label><input id="rag-topk" type="number" value="5" min="1" max="20"></div>
+          <div class="form-group"><label>Also trigger n8n?</label>
+            <select id="rag-trigger" style="width:100%;padding:8px 12px;font-size:13px;font-family:var(--font);background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--fg)">
+              <option value="no">No &mdash; query only</option>
+              <option value="yes">Yes &mdash; forward to n8n</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary" id="rag-submit-btn">Search Knowledge</button>
+      </form>
+    </div>
+    <div id="rag-results"></div>
+  `;
+}
+
+async function submitRagQuery(e, workflowId) {
+  e.preventDefault();
+  const btn = document.getElementById('rag-submit-btn');
+  btn.textContent = 'Searching...';
+  btn.disabled = true;
+  const trigger = document.getElementById('rag-trigger').value === 'yes';
+  const endpoint = trigger ? 'query-and-trigger' : 'query';
+
+  try {
+    const res = await api(`/api/workflow/${workflowId}/${endpoint}`, {
+      method: 'POST',
+      body: {
+        query: document.getElementById('rag-query').value,
+        top_k: parseInt(document.getElementById('rag-topk').value) || 5
+      }
+    });
+    btn.textContent = 'Search Knowledge';
+    btn.disabled = false;
+    if (trigger) toast('Results sent to n8n');
+
+    const results = document.getElementById('rag-results');
+    if (!res.matches || !res.matches.length) {
+      results.innerHTML = '<div class="card" style="margin-top:12px;text-align:center;color:var(--muted)">No matching chunks found. Try indexing more pages.</div>';
+      return;
+    }
+    results.innerHTML = `
+      <h2 style="font-size:16px;font-weight:600;margin:20px 0 12px">${res.matches.length} results for "${esc(res.query)}"</h2>
+      ${res.matches.map((m, i) => `
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">#${i+1} &mdash; ${esc(m.document_title || 'Untitled')}</span>
+            <span class="badge badge-blue">${esc(m.source_type)}</span>
+          </div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:8px">
+            Chunk ${m.chunk_index} &middot; <span class="mono">${m.document_id.slice(0,8)}...</span>
+          </div>
+          <div style="font-size:13px;white-space:pre-wrap;background:var(--bg);padding:12px;border-radius:6px;border:1px solid var(--border);max-height:200px;overflow-y:auto">${esc(m.content)}</div>
+        </div>
+      `).join('')}
+    `;
+  } catch(e) {
+    btn.textContent = 'Search Knowledge';
+    btn.disabled = false;
+    toast(e.message, 'error');
   }
 }
 

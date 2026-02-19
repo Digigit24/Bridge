@@ -23,13 +23,15 @@ node server.js
 | `NOTION_VERSION` | Notion API version (`2022-06-28`) |
 | `NOTION_WEBHOOK_SECRET` | Secret for verifying Notion webhook signatures |
 | `DEFAULT_N8N_WEBHOOK_URL` | Fallback n8n webhook URL |
+| `OPENAI_API_KEY` | OpenAI API key (for embeddings / RAG) |
 
 ## Neon Postgres Setup
 
 1. Create a free project at [neon.tech](https://neon.tech)
-2. Copy the connection string from your dashboard
-3. Set `DATABASE_URL` in `.env`
-4. Tables are created automatically on first startup
+2. Enable the **pgvector** extension (Neon supports it by default)
+3. Copy the connection string from your dashboard
+4. Set `DATABASE_URL` in `.env`
+5. Tables are created automatically on first startup (including `knowledge_documents` and `knowledge_chunks` with vector columns)
 
 ## Notion OAuth Integration
 
@@ -82,8 +84,15 @@ Each workflow links one Notion database to one n8n webhook. When a Notion webhoo
 ### Trigger
 - `POST /api/workflow/:id/create-and-trigger` — Create page + notify n8n
 
+### Knowledge (RAG)
+- `POST /api/workflow/:id/index-notion-page` — Index a Notion page into the knowledge base
+- `GET /api/workflow/:id/documents` — List indexed documents
+- `DELETE /api/workflow/:id/document/:doc_id` — Delete a document and its chunks
+- `POST /api/workflow/:id/query` — RAG query (vector similarity search)
+- `POST /api/workflow/:id/query-and-trigger` — RAG query + forward results to n8n
+
 ### Webhook
-- `POST /webhooks/notion` — Receive Notion webhooks
+- `POST /webhooks/notion` — Receive Notion webhooks (also auto re-indexes updated pages)
 
 ## Example curl Tests
 
@@ -133,6 +142,72 @@ curl -X POST http://localhost:3000/api/workflow/WORKFLOW_ID/create-and-trigger \
       "Name": {"title": [{"text": {"content": "Triggered Page"}}]}
     }
   }'
+```
+
+## Knowledge Layer (RAG)
+
+### How Knowledge Indexing Works
+
+1. Call `POST /api/workflow/:id/index-notion-page` with a `notion_page_id`
+2. The Bridge fetches all blocks from the Notion page via the API
+3. Blocks are converted to plain text
+4. Text is split into chunks (800 chars, 100 overlap)
+5. Each chunk is embedded using OpenAI `text-embedding-3-small` (1536 dimensions)
+6. Document + chunks are stored in PostgreSQL with pgvector
+
+The document is upserted (create or update). On re-index, old chunks are deleted and replaced.
+
+### How Notion Auto-Sync Works
+
+When a Notion webhook fires (page updated), the Bridge:
+1. Verifies the signature
+2. Forwards the payload to the mapped n8n webhook (as before)
+3. If `OPENAI_API_KEY` is set, auto re-indexes the updated page in the background
+
+This keeps the knowledge base in sync without manual re-indexing.
+
+### How RAG Query Works
+
+1. Call `POST /api/workflow/:id/query` with `{"query": "...", "top_k": 5}`
+2. The query is embedded using the same OpenAI model
+3. pgvector performs a nearest-neighbor search (`<->` operator)
+4. Top K matching chunks are returned with their source document info
+
+Use `POST /api/workflow/:id/query-and-trigger` to also forward the results to n8n for further processing.
+
+### Adding Future Sources
+
+The knowledge layer is source-agnostic. `knowledge_documents` has a `source_type` field supporting:
+- `notion` — Notion pages (built-in)
+- `clickup` — ClickUp tasks (future)
+- `gdocs` — Google Docs (future)
+- `internal` — Custom/manual content (future)
+
+To add a new source, create an ingestion function that calls `indexDocument(workflowId, sourceType, sourceId, title, content, metadata)` from `knowledgeService.js`.
+
+### Example curl — Knowledge + RAG
+
+```bash
+# Index a Notion page
+curl -X POST http://localhost:3000/api/workflow/WORKFLOW_ID/index-notion-page \
+  -H "Content-Type: application/json" \
+  -d '{"notion_page_id": "PAGE_ID_HERE"}'
+
+# List indexed documents
+curl http://localhost:3000/api/workflow/WORKFLOW_ID/documents
+
+# RAG query
+curl -X POST http://localhost:3000/api/workflow/WORKFLOW_ID/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "How does the onboarding process work?", "top_k": 5}'
+
+# RAG query + trigger n8n
+curl -X POST http://localhost:3000/api/workflow/WORKFLOW_ID/query-and-trigger \
+  -H "Content-Type: application/json" \
+  -d '{"query": "What are our pricing tiers?", "top_k": 3}'
+
+# Delete an indexed document
+curl -X DELETE http://localhost:3000/api/workflow/WORKFLOW_ID/document/DOC_ID
 ```
 
 ## Deploy (Generic VPS)

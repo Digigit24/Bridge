@@ -7,6 +7,8 @@ const { initDB, saveToken } = require('./db');
 const { createPage, listPages, updatePage, archivePage } = require('./notionService');
 const { createWorkflow, listWorkflows, getWorkflowById, findWorkflowByDatabaseId } = require('./workflowService');
 const { verifyNotionSignature, forwardToN8N } = require('./webhookService');
+const { indexNotionPage, listDocuments, deleteDocument } = require('./knowledgeService');
+const { queryKnowledge } = require('./ragService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -194,6 +196,90 @@ app.post('/api/workflow/:id/create-and-trigger', async (req, res) => {
   }
 });
 
+// ─── Knowledge Indexing ──────────────────────────────────
+
+app.post('/api/workflow/:id/index-notion-page', async (req, res) => {
+  try {
+    const workflow = await getWorkflowById(req.params.id);
+    if (!workflow) return res.status(404).json({ error: 'Workflow not found' });
+
+    const { notion_page_id } = req.body;
+    if (!notion_page_id) return res.status(400).json({ error: 'notion_page_id is required' });
+
+    const result = await indexNotionPage(workflow.id, notion_page_id);
+    res.status(201).json({ success: true, ...result });
+  } catch (err) {
+    console.error('[Knowledge] Index error:', err.message);
+    res.status(500).json({ error: 'Failed to index page' });
+  }
+});
+
+app.get('/api/workflow/:id/documents', async (req, res) => {
+  try {
+    const workflow = await getWorkflowById(req.params.id);
+    if (!workflow) return res.status(404).json({ error: 'Workflow not found' });
+
+    const docs = await listDocuments(workflow.id);
+    res.json(docs);
+  } catch (err) {
+    console.error('[Knowledge] List error:', err.message);
+    res.status(500).json({ error: 'Failed to list documents' });
+  }
+});
+
+app.delete('/api/workflow/:id/document/:doc_id', async (req, res) => {
+  try {
+    await deleteDocument(req.params.doc_id);
+    res.json({ deleted: true });
+  } catch (err) {
+    console.error('[Knowledge] Delete error:', err.message);
+    res.status(500).json({ error: 'Failed to delete document' });
+  }
+});
+
+// ─── RAG Query ───────────────────────────────────────────
+
+app.post('/api/workflow/:id/query', async (req, res) => {
+  try {
+    const workflow = await getWorkflowById(req.params.id);
+    if (!workflow) return res.status(404).json({ error: 'Workflow not found' });
+
+    const { query, top_k } = req.body;
+    if (!query) return res.status(400).json({ error: 'query is required' });
+
+    const matches = await queryKnowledge(workflow.id, query, top_k || 5);
+    res.json({ query, matches });
+  } catch (err) {
+    console.error('[RAG] Query error:', err.message);
+    res.status(500).json({ error: 'Failed to query knowledge' });
+  }
+});
+
+app.post('/api/workflow/:id/query-and-trigger', async (req, res) => {
+  try {
+    const workflow = await getWorkflowById(req.params.id);
+    if (!workflow) return res.status(404).json({ error: 'Workflow not found' });
+
+    const { query, top_k } = req.body;
+    if (!query) return res.status(400).json({ error: 'query is required' });
+
+    const matches = await queryKnowledge(workflow.id, query, top_k || 5);
+
+    // Fire-and-forget to n8n
+    forwardToN8N(workflow.n8n_webhook_url, {
+      event: 'rag_query',
+      workflow_id: workflow.id,
+      query,
+      context_chunks: matches
+    });
+
+    res.json({ query, matches, triggered: true });
+  } catch (err) {
+    console.error('[RAG] Query+trigger error:', err.message);
+    res.status(500).json({ error: 'Failed to query and trigger' });
+  }
+});
+
 // ─── Notion Webhook Receiver ─────────────────────────────
 
 app.post('/webhooks/notion', async (req, res) => {
@@ -212,6 +298,9 @@ app.post('/webhooks/notion', async (req, res) => {
     const databaseId = payload?.data?.parent?.database_id
       || payload?.entity?.id
       || null;
+    const pageId = payload?.data?.id
+      || payload?.entity?.id
+      || null;
 
     if (!databaseId) {
       console.log('[Webhook] No database_id in payload');
@@ -224,7 +313,15 @@ app.post('/webhooks/notion', async (req, res) => {
       return;
     }
 
+    // Forward to n8n
     await forwardToN8N(workflow.n8n_webhook_url, payload);
+
+    // Auto re-index page if we have a page_id and OpenAI is configured
+    if (pageId && process.env.OPENAI_API_KEY) {
+      indexNotionPage(workflow.id, pageId).catch(err => {
+        console.error(`[Webhook] Auto re-index failed for ${pageId}: ${err.message}`);
+      });
+    }
   } catch (err) {
     console.error('[Webhook] Processing error:', err.message);
   }
