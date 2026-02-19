@@ -1,4 +1,5 @@
 require('dotenv').config();
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
@@ -19,9 +20,13 @@ app.use('/webhooks/notion', express.json({
 
 app.use(express.json());
 
+// ─── Static frontend ─────────────────────────────────────
+
+app.use(express.static(path.join(__dirname, 'public')));
+
 // ─── Health ──────────────────────────────────────────────
 
-app.get('/', (_req, res) => {
+app.get('/health', (_req, res) => {
   res.json({ status: 'Bridge API running' });
 });
 
@@ -55,7 +60,7 @@ app.get('/auth/notion/callback', async (req, res) => {
     const { workspace_id, access_token } = response.data;
     await saveToken(workspace_id, access_token);
     console.log(`[Auth] Token saved for workspace: ${workspace_id}`);
-    res.json({ success: true, workspace_id });
+    res.redirect('/?connected=true');
   } catch (err) {
     console.error('[Auth] OAuth error:', err.response?.data || err.message);
     res.status(500).json({ error: 'OAuth failed' });

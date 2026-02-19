@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bridge &mdash; Notion + n8n</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#09090b;--card:#0a0a0c;--border:#27272a;--border-hover:#3f3f46;
+  --fg:#fafafa;--muted:#a1a1aa;--accent:#2563eb;--accent-hover:#1d4ed8;
+  --danger:#dc2626;--danger-hover:#b91c1c;--success:#16a34a;
+  --radius:8px;--font:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--fg);line-height:1.5;min-height:100vh}
+a{color:var(--accent);text-decoration:none}
+
+/* ── Layout ─────────────────────────── */
+.shell{display:flex;min-height:100vh}
+.sidebar{width:260px;border-right:1px solid var(--border);padding:20px;display:flex;flex-direction:column;gap:4px;position:fixed;top:0;left:0;bottom:0;overflow-y:auto}
+.main{margin-left:260px;flex:1;padding:32px 40px;max-width:960px}
+
+.logo{font-size:15px;font-weight:600;letter-spacing:-.3px;padding:8px 12px;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.logo .dot{width:8px;height:8px;border-radius:50%;background:var(--success);flex-shrink:0}
+
+/* ── Nav ────────────────────────────── */
+.nav-section{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:16px 12px 6px}
+.nav-btn{display:flex;align-items:center;gap:10px;width:100%;padding:8px 12px;border:none;background:none;color:var(--muted);font-size:13px;font-family:var(--font);border-radius:6px;cursor:pointer;text-align:left;transition:all .15s}
+.nav-btn:hover,.nav-btn.active{background:#18181b;color:var(--fg)}
+.nav-btn svg{width:16px;height:16px;flex-shrink:0;opacity:.5}
+.nav-btn.active svg{opacity:1}
+
+/* ── Typography ─────────────────────── */
+h1{font-size:24px;font-weight:600;letter-spacing:-.5px;margin-bottom:4px}
+.subtitle{color:var(--muted);font-size:14px;margin-bottom:28px}
+
+/* ── Cards ──────────────────────────── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:12px;transition:border-color .15s}
+.card:hover{border-color:var(--border-hover)}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.card-title{font-size:15px;font-weight:600}
+.card-meta{font-size:12px;color:var(--muted)}
+
+/* ── Badges ─────────────────────────── */
+.badge{display:inline-block;padding:2px 8px;font-size:11px;font-weight:500;border-radius:100px;border:1px solid var(--border)}
+.badge-blue{color:#60a5fa;border-color:#1e3a5f}
+.badge-green{color:#4ade80;border-color:#14532d}
+
+/* ── Buttons ────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;font-size:13px;font-weight:500;font-family:var(--font);border:1px solid var(--border);border-radius:6px;cursor:pointer;transition:all .15s;background:var(--card);color:var(--fg)}
+.btn:hover{background:#18181b;border-color:var(--border-hover)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent-hover)}
+.btn-danger{background:transparent;border-color:var(--danger);color:var(--danger)}
+.btn-danger:hover{background:var(--danger);color:#fff}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-ghost{background:none;border:none;color:var(--muted);padding:6px}
+.btn-ghost:hover{color:var(--fg)}
+
+/* ── Forms ──────────────────────────── */
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:13px;font-weight:500;margin-bottom:6px;color:var(--muted)}
+.form-group input,.form-group textarea{width:100%;padding:8px 12px;font-size:13px;font-family:var(--font);background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--fg);outline:none;transition:border-color .15s}
+.form-group input:focus,.form-group textarea:focus{border-color:var(--accent)}
+.form-group textarea{resize:vertical;min-height:60px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* ── Table ──────────────────────────── */
+.table-wrap{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 16px;background:#111113;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid var(--border)}
+td{padding:12px 16px;border-bottom:1px solid var(--border)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#0f0f11}
+.td-actions{display:flex;gap:4px;justify-content:flex-end}
+
+/* ── Modal ──────────────────────────── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:opacity .2s}
+.overlay.open{opacity:1;pointer-events:auto}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:24px;width:100%;max-width:500px;max-height:85vh;overflow-y:auto}
+.modal h2{font-size:18px;font-weight:600;margin-bottom:4px}
+.modal .subtitle{margin-bottom:20px}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+
+/* ── Toast ──────────────────────────── */
+.toast-container{position:fixed;top:16px;right:16px;z-index:200;display:flex;flex-direction:column;gap:8px}
+.toast{padding:10px 16px;font-size:13px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--fg);animation:slideIn .2s ease}
+.toast-success{border-color:#14532d;color:#4ade80}
+.toast-error{border-color:#7f1d1d;color:#f87171}
+@keyframes slideIn{from{transform:translateX(20px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* ── Empty state ────────────────────── */
+.empty{text-align:center;padding:48px 20px;color:var(--muted)}
+.empty svg{width:40px;height:40px;margin-bottom:12px;opacity:.3}
+.empty p{font-size:14px;margin-bottom:16px}
+
+/* ── Page detail ────────────────────── */
+.back-btn{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);margin-bottom:16px;cursor:pointer;background:none;border:none;font-family:var(--font);padding:0}
+.back-btn:hover{color:var(--fg)}
+.detail-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px}
+.detail-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.mono{font-family:'SF Mono',Consolas,monospace;font-size:12px;color:var(--muted)}
+
+/* ── Responsive ─────────────────────── */
+@media(max-width:768px){
+  .sidebar{display:none}
+  .main{margin-left:0;padding:20px}
+  .form-row{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="logo"><span class="dot"></span> Bridge</div>
+    <div class="nav-section">Navigation</div>
+    <button class="nav-btn active" onclick="navigate('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </button>
+    <button class="nav-btn" onclick="navigate('workflows')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Workflows
+    </button>
+    <button class="nav-btn" onclick="navigate('pages')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Pages
+    </button>
+    <div class="nav-section">Settings</div>
+    <button class="nav-btn" onclick="navigate('connect')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+      Notion OAuth
+    </button>
+  </nav>
+
+  <!-- Main content -->
+  <main class="main" id="content"></main>
+</div>
+
+<!-- Modal overlay -->
+<div class="overlay" id="overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal"></div>
+</div>
+
+<!-- Toasts -->
+<div class="toast-container" id="toasts"></div>
+
+<script>
+const API = '';
+let workflows = [];
+let currentView = 'dashboard';
+let selectedWorkflow = null;
+
+// ── API helpers ────────────────────────────
+async function api(path, opts = {}) {
+  const res = await fetch(API + path, {
+    headers: { 'Content-Type': 'application/json', ...opts.headers },
+    ...opts,
+    body: opts.body ? JSON.stringify(opts.body) : undefined
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+function toast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.textContent = msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+// ── Navigation ─────────────────────────────
+function navigate(view, data) {
+  currentView = view;
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const idx = { dashboard: 0, workflows: 1, pages: 2, connect: 3 }[view];
+  if (idx !== undefined) document.querySelectorAll('.nav-btn')[idx]?.classList.add('active');
+
+  if (view === 'dashboard') renderDashboard();
+  else if (view === 'workflows') renderWorkflows();
+  else if (view === 'pages') renderPageSelect();
+  else if (view === 'connect') renderConnect();
+  else if (view === 'workflow-detail') renderWorkflowDetail(data);
+  else if (view === 'workflow-pages') renderWorkflowPages(data);
+}
+
+// ── Dashboard ──────────────────────────────
+async function renderDashboard() {
+  try { workflows = await api('/api/workflows'); } catch(e) { workflows = []; }
+  const c = document.getElementById('content');
+  c.innerHTML = `
+    <h1>Dashboard</h1>
+    <p class="subtitle">Notion + n8n Bridge overview</p>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px">
+      <div class="card">
+        <div class="card-meta">Total Workflows</div>
+        <div style="font-size:32px;font-weight:700;margin-top:4px">${workflows.length}</div>
+      </div>
+      <div class="card">
+        <div class="card-meta">API Status</div>
+        <div style="margin-top:8px"><span class="badge badge-green">Online</span></div>
+      </div>
+      <div class="card">
+        <div class="card-meta">Quick Action</div>
+        <div style="margin-top:8px"><button class="btn btn-primary btn-sm" onclick="openCreateWorkflow()">+ New Workflow</button></div>
+      </div>
+    </div>
+    <h2 style="font-size:16px;font-weight:600;margin-bottom:12px">Recent Workflows</h2>
+    ${workflows.length === 0 ? `
+      <div class="empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <p>No workflows yet</p>
+        <button class="btn btn-primary btn-sm" onclick="openCreateWorkflow()">Create your first workflow</button>
+      </div>
+    ` : workflows.slice(0, 5).map(w => `
+      <div class="card" style="cursor:pointer" onclick="navigate('workflow-detail','${w.id}')">
+        <div class="card-header">
+          <span class="card-title">${esc(w.name)}</span>
+          <span class="badge badge-blue">workflow</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted)">
+          <span class="mono">${w.notion_database_id}</span> &rarr; n8n
+        </div>
+      </div>
+    `).join('')}
+  `;
+}
+
+// ── Workflows list ─────────────────────────
+async function renderWorkflows() {
+  try { workflows = await api('/api/workflows'); } catch(e) { workflows = []; }
+  const c = document.getElementById('content');
+  c.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <h1>Workflows</h1>
+      <button class="btn btn-primary" onclick="openCreateWorkflow()">+ New Workflow</button>
+    </div>
+    <p class="subtitle">Each workflow maps a Notion database to an n8n webhook</p>
+    ${workflows.length === 0 ? `
+      <div class="empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <p>No workflows configured</p>
+        <button class="btn btn-primary btn-sm" onclick="openCreateWorkflow()">Create Workflow</button>
+      </div>
+    ` : `
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>Notion DB</th><th>n8n Webhook</th><th>Created</th><th></th></tr></thead>
+          <tbody>
+            ${workflows.map(w => `<tr>
+              <td><strong>${esc(w.name)}</strong></td>
+              <td><span class="mono">${w.notion_database_id.slice(0,12)}...</span></td>
+              <td><span class="mono">${esc(w.n8n_webhook_url).slice(0,30)}...</span></td>
+              <td class="card-meta">${new Date(w.created_at).toLocaleDateString()}</td>
+              <td class="td-actions">
+                <button class="btn btn-sm" onclick="navigate('workflow-detail','${w.id}')">Open</button>
+                <button class="btn btn-sm" onclick="navigate('workflow-pages','${w.id}')">Pages</button>
+              </td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    `}
+  `;
+}
+
+// ── Workflow detail ────────────────────────
+async function renderWorkflowDetail(id) {
+  let wf;
+  try {
+    if (!workflows.length) workflows = await api('/api/workflows');
+    wf = workflows.find(w => w.id === id);
+    if (!wf) throw new Error('not found');
+  } catch(e) { return toast('Workflow not found', 'error'); }
+  selectedWorkflow = wf;
+  const perms = wf.permissions_json || {};
+  const c = document.getElementById('content');
+  c.innerHTML = `
+    <button class="back-btn" onclick="navigate('workflows')">&larr; Back to Workflows</button>
+    <div class="detail-header">
+      <div>
+        <h1>${esc(wf.name)}</h1>
+        <div class="detail-chips">
+          <span class="badge badge-blue">workflow</span>
+          <span class="mono">${wf.id}</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm" onclick="navigate('workflow-pages','${wf.id}')">View Pages</button>
+        <button class="btn btn-primary btn-sm" onclick="openCreateAndTrigger('${wf.id}')">Create &amp; Trigger</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="form-group"><label>Notion Database ID</label><input readonly value="${wf.notion_database_id}"></div>
+      <div class="form-group"><label>n8n Webhook URL</label><input readonly value="${esc(wf.n8n_webhook_url)}"></div>
+      <div class="form-group"><label>Permissions (JSON)</label><textarea readonly>${JSON.stringify(perms, null, 2)}</textarea></div>
+      <div class="form-group"><label>Created</label><input readonly value="${new Date(wf.created_at).toLocaleString()}"></div>
+    </div>
+    <h2 style="font-size:16px;font-weight:600;margin-bottom:12px">API Endpoints for this Workflow</h2>
+    <div class="card" style="font-size:13px">
+      <table style="width:100%">
+        <tr><td class="card-meta" style="width:80px">POST</td><td class="mono">/api/workflow/${wf.id}/page</td><td class="card-meta">Create page</td></tr>
+        <tr><td class="card-meta">GET</td><td class="mono">/api/workflow/${wf.id}/pages</td><td class="card-meta">List pages</td></tr>
+        <tr><td class="card-meta">PATCH</td><td class="mono">/api/workflow/${wf.id}/page/:page_id</td><td class="card-meta">Update page</td></tr>
+        <tr><td class="card-meta">DELETE</td><td class="mono">/api/workflow/${wf.id}/page/:page_id</td><td class="card-meta">Archive page</td></tr>
+        <tr><td class="card-meta">POST</td><td class="mono">/api/workflow/${wf.id}/create-and-trigger</td><td class="card-meta">Create + n8n</td></tr>
+      </table>
+    </div>
+  `;
+}
+
+// ── Pages (select workflow first) ──────────
+function renderPageSelect() {
+  if (!workflows.length) {
+    api('/api/workflows').then(w => { workflows = w; renderPageSelect(); }).catch(() => {});
+    return;
+  }
+  if (workflows.length === 1) return navigate('workflow-pages', workflows[0].id);
+  const c = document.getElementById('content');
+  c.innerHTML = `
+    <h1>Pages</h1>
+    <p class="subtitle">Select a workflow to view its Notion pages</p>
+    ${workflows.map(w => `
+      <div class="card" style="cursor:pointer" onclick="navigate('workflow-pages','${w.id}')">
+        <div class="card-header">
+          <span class="card-title">${esc(w.name)}</span>
+          <span class="badge badge-blue">&rarr;</span>
+        </div>
+      </div>
+    `).join('')}
+  `;
+}
+
+// ── Workflow pages ─────────────────────────
+async function renderWorkflowPages(id) {
+  let wf = workflows.find(w => w.id === id);
+  if (!wf) { try { workflows = await api('/api/workflows'); wf = workflows.find(w => w.id === id); } catch(e){} }
+  if (!wf) return toast('Workflow not found','error');
+  selectedWorkflow = wf;
+
+  const c = document.getElementById('content');
+  c.innerHTML = `
+    <button class="back-btn" onclick="navigate('workflows')">&larr; Back</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <h1>${esc(wf.name)} &mdash; Pages</h1>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm" onclick="openCreatePage('${wf.id}')">+ Create Page</button>
+        <button class="btn btn-primary btn-sm" onclick="openCreateAndTrigger('${wf.id}')">Create &amp; Trigger</button>
+      </div>
+    </div>
+    <p class="subtitle">Pages in Notion database <span class="mono">${wf.notion_database_id}</span></p>
+    <div id="pages-loading" class="empty"><p>Loading pages...</p></div>
+    <div id="pages-table"></div>
+  `;
+
+  try {
+    const pages = await api(`/api/workflow/${id}/pages`);
+    document.getElementById('pages-loading').style.display = 'none';
+    const tbl = document.getElementById('pages-table');
+    if (!pages.length) {
+      tbl.innerHTML = '<div class="empty"><p>No pages found in this database</p></div>';
+      return;
+    }
+    tbl.innerHTML = `
+      <div class="table-wrap"><table>
+        <thead><tr><th>Title</th><th>ID</th><th>Last Edited</th><th></th></tr></thead>
+        <tbody>${pages.map(p => {
+          const title = getTitle(p);
+          return `<tr>
+            <td><strong>${esc(title)}</strong></td>
+            <td><span class="mono">${p.id.slice(0,12)}...</span></td>
+            <td class="card-meta">${new Date(p.last_edited_time).toLocaleString()}</td>
+            <td class="td-actions">
+              <button class="btn btn-sm" onclick="openEditPage('${id}','${p.id}')">Edit</button>
+              <button class="btn btn-danger btn-sm" onclick="archivePage('${id}','${p.id}')">Archive</button>
+            </td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>
+    `;
+  } catch(e) {
+    document.getElementById('pages-loading').innerHTML = `<p style="color:var(--danger)">${esc(e.message)}</p>`;
+  }
+}
+
+// ── Notion Connect ─────────────────────────
+function renderConnect() {
+  const c = document.getElementById('content');
+  c.innerHTML = `
+    <h1>Notion OAuth</h1>
+    <p class="subtitle">Connect your Notion workspace to this Bridge</p>
+    <div class="card">
+      <p style="font-size:14px;margin-bottom:16px">Click the button below to start the Notion OAuth flow. You'll be redirected to Notion to authorize this application, then sent back here.</p>
+      <a href="/auth/notion/login" class="btn btn-primary">Connect Notion Workspace</a>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="card-title" style="margin-bottom:12px">Setup Checklist</div>
+      <div style="font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:8px">
+        <div>1. Create a <strong>public</strong> Notion integration at notion.so/my-integrations</div>
+        <div>2. Set redirect URI to <span class="mono">${location.origin}/auth/notion/callback</span></div>
+        <div>3. Copy Client ID and Client Secret into your <span class="mono">.env</span></div>
+        <div>4. Click "Connect Notion Workspace" above</div>
+        <div>5. Authorize the integration in Notion</div>
+      </div>
+    </div>
+  `;
+}
+
+// ── Modals ─────────────────────────────────
+function openModal(html) {
+  document.getElementById('modal').innerHTML = html;
+  document.getElementById('overlay').classList.add('open');
+}
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('overlay')) return;
+  document.getElementById('overlay').classList.remove('open');
+}
+
+function openCreateWorkflow() {
+  openModal(`
+    <h2>New Workflow</h2>
+    <p class="subtitle">Map a Notion database to an n8n webhook</p>
+    <form onsubmit="submitCreateWorkflow(event)">
+      <div class="form-group"><label>Name</label><input id="wf-name" required placeholder="e.g. Content Pipeline"></div>
+      <div class="form-group"><label>Notion Database ID</label><input id="wf-db" required placeholder="abc123def456..."></div>
+      <div class="form-group"><label>n8n Webhook URL</label><input id="wf-hook" required placeholder="https://your-n8n.com/webhook/..."></div>
+      <div class="form-group"><label>Permissions (JSON, optional)</label><textarea id="wf-perms" placeholder='{"can_create": true}'>{}</textarea></div>
+      <div class="modal-actions">
+        <button type="button" class="btn" onclick="closeModal({target:document.getElementById('overlay')})">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create Workflow</button>
+      </div>
+    </form>
+  `);
+}
+
+async function submitCreateWorkflow(e) {
+  e.preventDefault();
+  let perms;
+  try { perms = JSON.parse(document.getElementById('wf-perms').value || '{}'); } catch { perms = {}; }
+  try {
+    await api('/api/workflows', {
+      method: 'POST',
+      body: {
+        name: document.getElementById('wf-name').value,
+        notion_database_id: document.getElementById('wf-db').value,
+        n8n_webhook_url: document.getElementById('wf-hook').value,
+        permissions: perms
+      }
+    });
+    closeModal({ target: document.getElementById('overlay') });
+    toast('Workflow created');
+    navigate(currentView === 'dashboard' ? 'dashboard' : 'workflows');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function openCreatePage(workflowId) {
+  openModal(`
+    <h2>Create Page</h2>
+    <p class="subtitle">Add a new page to this workflow's Notion database</p>
+    <form onsubmit="submitCreatePage(event, '${workflowId}')">
+      <div class="form-group"><label>Properties (JSON)</label>
+        <textarea id="page-props" rows="6" required placeholder='{"Name": {"title": [{"text": {"content": "My Page"}}]}}'></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" onclick="closeModal({target:document.getElementById('overlay')})">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create Page</button>
+      </div>
+    </form>
+  `);
+}
+
+async function submitCreatePage(e, workflowId) {
+  e.preventDefault();
+  try {
+    const props = JSON.parse(document.getElementById('page-props').value);
+    await api(`/api/workflow/${workflowId}/page`, { method: 'POST', body: { properties: props } });
+    closeModal({ target: document.getElementById('overlay') });
+    toast('Page created');
+    navigate('workflow-pages', workflowId);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function openCreateAndTrigger(workflowId) {
+  openModal(`
+    <h2>Create &amp; Trigger</h2>
+    <p class="subtitle">Create a Notion page and notify n8n</p>
+    <form onsubmit="submitCreateAndTrigger(event, '${workflowId}')">
+      <div class="form-group"><label>Properties (JSON)</label>
+        <textarea id="trigger-props" rows="6" required placeholder='{"Name": {"title": [{"text": {"content": "Triggered Page"}}]}}'></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" onclick="closeModal({target:document.getElementById('overlay')})">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create &amp; Trigger n8n</button>
+      </div>
+    </form>
+  `);
+}
+
+async function submitCreateAndTrigger(e, workflowId) {
+  e.preventDefault();
+  try {
+    const props = JSON.parse(document.getElementById('trigger-props').value);
+    const res = await api(`/api/workflow/${workflowId}/create-and-trigger`, { method: 'POST', body: { properties: props } });
+    closeModal({ target: document.getElementById('overlay') });
+    toast(`Page created (${res.page_id.slice(0,8)}...) + n8n triggered`);
+    navigate('workflow-pages', workflowId);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function openEditPage(workflowId, pageId) {
+  openModal(`
+    <h2>Update Page</h2>
+    <p class="subtitle mono">${pageId}</p>
+    <form onsubmit="submitEditPage(event, '${workflowId}', '${pageId}')">
+      <div class="form-group"><label>Properties (JSON)</label>
+        <textarea id="edit-props" rows="6" required placeholder='{"Name": {"title": [{"text": {"content": "Updated"}}]}}'></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" onclick="closeModal({target:document.getElementById('overlay')})">Cancel</button>
+        <button type="submit" class="btn btn-primary">Update</button>
+      </div>
+    </form>
+  `);
+}
+
+async function submitEditPage(e, workflowId, pageId) {
+  e.preventDefault();
+  try {
+    const props = JSON.parse(document.getElementById('edit-props').value);
+    await api(`/api/workflow/${workflowId}/page/${pageId}`, { method: 'PATCH', body: { properties: props } });
+    closeModal({ target: document.getElementById('overlay') });
+    toast('Page updated');
+    navigate('workflow-pages', workflowId);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function archivePage(workflowId, pageId) {
+  if (!confirm('Archive this page?')) return;
+  try {
+    await api(`/api/workflow/${workflowId}/page/${pageId}`, { method: 'DELETE' });
+    toast('Page archived');
+    navigate('workflow-pages', workflowId);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ── Helpers ────────────────────────────────
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+
+function getTitle(page) {
+  const props = page.properties || {};
+  for (const key of Object.keys(props)) {
+    const p = props[key];
+    if (p.type === 'title' && p.title?.length) return p.title.map(t => t.plain_text).join('');
+  }
+  return 'Untitled';
+}
+
+// ── Init ───────────────────────────────────
+navigate('dashboard');
+</script>
+</body>
+</html>
