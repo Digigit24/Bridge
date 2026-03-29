@@ -58,4 +58,20 @@ async function fetchPageBlocks(pageId) {
   return blocks;
 }
 
-module.exports = { createPage, listPages, updatePage, archivePage, fetchPageBlocks };
+// List all databases the integration has access to
+async function listDatabases(query = '') {
+  const headers = await notionHeaders();
+  const body = { filter: { value: 'database', property: 'object' }, page_size: 100 };
+  if (query) body.query = query;
+  const res = await axios.post(`${NOTION_API}/search`, body, { headers });
+  return res.data.results;
+}
+
+// Get a single page's metadata
+async function getPage(pageId) {
+  const headers = await notionHeaders();
+  const res = await axios.get(`${NOTION_API}/pages/${pageId}`, { headers });
+  return res.data;
+}
+
+module.exports = { createPage, listPages, updatePage, archivePage, fetchPageBlocks, listDatabases, getPage };

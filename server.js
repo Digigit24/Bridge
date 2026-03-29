@@ -1,10 +1,12 @@
 require('dotenv').config();
+const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
+const logger = require('./logger');
 const { initDB, saveToken } = require('./db');
-const { createPage, listPages, updatePage, archivePage } = require('./notionService');
+const { createPage, listPages, updatePage, archivePage, listDatabases } = require('./notionService');
 const { createWorkflow, listWorkflows, getWorkflowById, findWorkflowByDatabaseId } = require('./workflowService');
 const { verifyNotionSignature, forwardToN8N } = require('./webhookService');
 const { indexNotionPage, listDocuments, deleteDocument } = require('./knowledgeService');
@@ -38,9 +40,26 @@ app.get('/auth/notion/status', async (_req, res) => {
   try {
     const { getLatestToken } = require('./db');
     const token = await getLatestToken();
-    res.json({ connected: true, configured: !!process.env.NOTION_CLIENT_ID });
+    const via = process.env.NOTION_TOKEN ? 'api_key' : 'oauth';
+    res.json({ connected: !!token, configured: !!process.env.NOTION_CLIENT_ID, via });
   } catch {
-    res.json({ connected: false, configured: !!process.env.NOTION_CLIENT_ID });
+    res.json({ connected: false, configured: !!process.env.NOTION_CLIENT_ID, via: null });
+  }
+});
+
+// Save a Notion internal integration token directly (no OAuth needed)
+app.post('/auth/notion/token', async (req, res) => {
+  const { token } = req.body;
+  if (!token || !token.startsWith('secret_')) {
+    return res.status(400).json({ error: 'Invalid token — must start with secret_' });
+  }
+  try {
+    await saveToken('manual', token);
+    logger.info('Auth', 'Internal integration token saved manually');
+    res.json({ saved: true });
+  } catch (err) {
+    logger.error('Auth', 'Failed to save token', { message: err.message });
+    res.status(500).json({ error: 'Failed to save token' });
   }
 });
 
@@ -49,6 +68,7 @@ app.get('/auth/notion/login', (_req, res) => {
   const redirectUri = process.env.NOTION_REDIRECT_URI;
 
   if (!clientId || !redirectUri) {
+    logger.error('Auth', 'OAuth not configured — missing NOTION_CLIENT_ID or NOTION_REDIRECT_URI');
     return res.status(500).json({
       error: 'Notion OAuth not configured',
       fix: 'Set NOTION_CLIENT_ID and NOTION_REDIRECT_URI in your .env file'
@@ -60,8 +80,21 @@ app.get('/auth/notion/login', (_req, res) => {
 });
 
 app.get('/auth/notion/callback', async (req, res) => {
-  const { code } = req.query;
-  if (!code) return res.status(400).json({ error: 'Missing code parameter' });
+  const { code, error: oauthError, error_description } = req.query;
+
+  // Notion sends an "error" query param if the user denied access
+  if (oauthError) {
+    const desc = error_description || '';
+    logger.error('Auth', 'OAuth denied by user or Notion', { error: oauthError, description: desc });
+    return res.redirect(
+      `/?auth_error=${encodeURIComponent(oauthError)}&auth_error_detail=${encodeURIComponent(desc)}`
+    );
+  }
+
+  if (!code) {
+    logger.error('Auth', 'Missing code parameter in OAuth callback');
+    return res.status(400).json({ error: 'Missing code parameter' });
+  }
 
   try {
     const encoded = Buffer.from(
@@ -79,13 +112,39 @@ app.get('/auth/notion/callback', async (req, res) => {
       }
     });
 
-    const { workspace_id, access_token } = response.data;
+    const { workspace_id, access_token, workspace_name } = response.data;
     await saveToken(workspace_id, access_token);
-    console.log(`[Auth] Token saved for workspace: ${workspace_id}`);
+    logger.info('Auth', 'Token saved', { workspace_id, workspace_name });
     res.redirect('/?connected=true');
   } catch (err) {
-    console.error('[Auth] OAuth error:', err.response?.data || err.message);
-    res.status(500).json({ error: 'OAuth failed' });
+    const errData = err.response?.data || {};
+    const errMsg = errData.error || err.message || 'unknown_error';
+    const errDesc = errData.error_description || '';
+    const httpStatus = err.response?.status;
+
+    logger.error('Auth', 'OAuth token exchange failed', {
+      http_status: httpStatus,
+      error: errMsg,
+      description: errDesc,
+      notion_response: errData
+    });
+
+    const display = errDesc ? `${errMsg}: ${errDesc}` : errMsg;
+    res.redirect(
+      `/?auth_error=${encodeURIComponent(display)}&auth_error_detail=${encodeURIComponent(JSON.stringify(errData))}`
+    );
+  }
+});
+
+// ─── Notion meta (databases list) ────────────────────────
+
+app.get('/api/notion/databases', async (_req, res) => {
+  try {
+    const dbs = await listDatabases();
+    res.json(dbs);
+  } catch (err) {
+    logger.error('Notion', 'Failed to list databases', { message: err.message });
+    res.status(500).json({ error: err.response?.data?.message || err.message });
   }
 });
 
@@ -98,10 +157,10 @@ app.post('/api/workflows', async (req, res) => {
       return res.status(400).json({ error: 'name, notion_database_id, and n8n_webhook_url are required' });
     }
     const workflow = await createWorkflow({ name, notion_database_id, n8n_webhook_url, permissions });
-    console.log(`[Workflow] Created: ${workflow.id}`);
+    logger.info('Workflow', 'Created', { id: workflow.id, name });
     res.status(201).json(workflow);
   } catch (err) {
-    console.error('[Workflow] Create error:', err.message);
+    logger.error('Workflow', 'Create error', { message: err.message });
     res.status(500).json({ error: 'Failed to create workflow' });
   }
 });
@@ -111,7 +170,7 @@ app.get('/api/workflows', async (_req, res) => {
     const workflows = await listWorkflows();
     res.json(workflows);
   } catch (err) {
-    console.error('[Workflow] List error:', err.message);
+    logger.error('Workflow', 'List error', { message: err.message });
     res.status(500).json({ error: 'Failed to list workflows' });
   }
 });
@@ -124,11 +183,11 @@ app.post('/api/workflow/:id/page', async (req, res) => {
     if (!workflow) return res.status(404).json({ error: 'Workflow not found' });
 
     const page = await createPage(workflow.notion_database_id, req.body.properties);
-    console.log(`[Page] Created: ${page.id}`);
+    logger.info('Page', 'Created', { page_id: page.id, workflow_id: req.params.id });
     res.status(201).json({ page_id: page.id, url: page.url });
   } catch (err) {
-    console.error('[Page] Create error:', err.response?.data || err.message);
-    res.status(500).json({ error: 'Failed to create page' });
+    logger.error('Page', 'Create error', { message: err.message, notion: err.response?.data });
+    res.status(500).json({ error: err.response?.data?.message || 'Failed to create page' });
   }
 });
 
@@ -140,8 +199,8 @@ app.get('/api/workflow/:id/pages', async (req, res) => {
     const pages = await listPages(workflow.notion_database_id);
     res.json(pages);
   } catch (err) {
-    console.error('[Page] List error:', err.response?.data || err.message);
-    res.status(500).json({ error: 'Failed to list pages' });
+    logger.error('Page', 'List error', { message: err.message, notion: err.response?.data });
+    res.status(500).json({ error: err.response?.data?.message || 'Failed to list pages' });
   }
 });
 
@@ -153,8 +212,8 @@ app.patch('/api/workflow/:id/page/:page_id', async (req, res) => {
     const page = await updatePage(req.params.page_id, req.body.properties);
     res.json({ page_id: page.id });
   } catch (err) {
-    console.error('[Page] Update error:', err.response?.data || err.message);
-    res.status(500).json({ error: 'Failed to update page' });
+    logger.error('Page', 'Update error', { message: err.message, notion: err.response?.data });
+    res.status(500).json({ error: err.response?.data?.message || 'Failed to update page' });
   }
 });
 
@@ -166,8 +225,8 @@ app.delete('/api/workflow/:id/page/:page_id', async (req, res) => {
     await archivePage(req.params.page_id);
     res.json({ archived: true, page_id: req.params.page_id });
   } catch (err) {
-    console.error('[Page] Delete error:', err.response?.data || err.message);
-    res.status(500).json({ error: 'Failed to archive page' });
+    logger.error('Page', 'Archive error', { message: err.message, notion: err.response?.data });
+    res.status(500).json({ error: err.response?.data?.message || 'Failed to archive page' });
   }
 });
 
@@ -179,9 +238,8 @@ app.post('/api/workflow/:id/create-and-trigger', async (req, res) => {
     if (!workflow) return res.status(404).json({ error: 'Workflow not found' });
 
     const page = await createPage(workflow.notion_database_id, req.body.properties);
-    console.log(`[Trigger] Page created: ${page.id}`);
+    logger.info('Trigger', 'Page created', { page_id: page.id });
 
-    // Fire-and-forget to n8n
     forwardToN8N(workflow.n8n_webhook_url, {
       event: 'page_created',
       workflow_id: workflow.id,
@@ -191,8 +249,8 @@ app.post('/api/workflow/:id/create-and-trigger', async (req, res) => {
 
     res.status(201).json({ success: true, page_id: page.id });
   } catch (err) {
-    console.error('[Trigger] Error:', err.response?.data || err.message);
-    res.status(500).json({ error: 'Failed to create and trigger' });
+    logger.error('Trigger', 'Error', { message: err.message, notion: err.response?.data });
+    res.status(500).json({ error: err.response?.data?.message || 'Failed to create and trigger' });
   }
 });
 
@@ -207,10 +265,42 @@ app.post('/api/workflow/:id/index-notion-page', async (req, res) => {
     if (!notion_page_id) return res.status(400).json({ error: 'notion_page_id is required' });
 
     const result = await indexNotionPage(workflow.id, notion_page_id);
+    logger.info('Knowledge', 'Page indexed', { page_id: notion_page_id, chunks: result.chunks, title: result.title });
     res.status(201).json({ success: true, ...result });
   } catch (err) {
-    console.error('[Knowledge] Index error:', err.message);
-    res.status(500).json({ error: 'Failed to index page' });
+    logger.error('Knowledge', 'Index error', { message: err.message });
+    res.status(500).json({ error: err.message || 'Failed to index page' });
+  }
+});
+
+// Sync all pages in the workflow's database into the knowledge base (background)
+app.post('/api/workflow/:id/sync-all', async (req, res) => {
+  try {
+    const workflow = await getWorkflowById(req.params.id);
+    if (!workflow) return res.status(404).json({ error: 'Workflow not found' });
+
+    const pages = await listPages(workflow.notion_database_id);
+    res.json({ started: true, total: pages.length });
+
+    // Index each page in the background
+    ;(async () => {
+      let indexed = 0;
+      let failed = 0;
+      for (const page of pages) {
+        try {
+          await indexNotionPage(workflow.id, page.id);
+          indexed++;
+          logger.info('Knowledge', 'Sync-all: page indexed', { page_id: page.id, progress: `${indexed}/${pages.length}` });
+        } catch (e) {
+          failed++;
+          logger.error('Knowledge', 'Sync-all: page failed', { page_id: page.id, error: e.message });
+        }
+      }
+      logger.info('Knowledge', 'Sync-all complete', { workflow_id: workflow.id, indexed, failed, total: pages.length });
+    })();
+  } catch (err) {
+    logger.error('Knowledge', 'Sync-all error', { message: err.message });
+    res.status(500).json({ error: err.message || 'Failed to start sync' });
   }
 });
 
@@ -222,7 +312,7 @@ app.get('/api/workflow/:id/documents', async (req, res) => {
     const docs = await listDocuments(workflow.id);
     res.json(docs);
   } catch (err) {
-    console.error('[Knowledge] List error:', err.message);
+    logger.error('Knowledge', 'List error', { message: err.message });
     res.status(500).json({ error: 'Failed to list documents' });
   }
 });
@@ -230,9 +320,10 @@ app.get('/api/workflow/:id/documents', async (req, res) => {
 app.delete('/api/workflow/:id/document/:doc_id', async (req, res) => {
   try {
     await deleteDocument(req.params.doc_id);
+    logger.info('Knowledge', 'Document deleted', { doc_id: req.params.doc_id });
     res.json({ deleted: true });
   } catch (err) {
-    console.error('[Knowledge] Delete error:', err.message);
+    logger.error('Knowledge', 'Delete error', { message: err.message });
     res.status(500).json({ error: 'Failed to delete document' });
   }
 });
@@ -250,7 +341,7 @@ app.post('/api/workflow/:id/query', async (req, res) => {
     const matches = await queryKnowledge(workflow.id, query, top_k || 5);
     res.json({ query, matches });
   } catch (err) {
-    console.error('[RAG] Query error:', err.message);
+    logger.error('RAG', 'Query error', { message: err.message });
     res.status(500).json({ error: 'Failed to query knowledge' });
   }
 });
@@ -265,7 +356,6 @@ app.post('/api/workflow/:id/query-and-trigger', async (req, res) => {
 
     const matches = await queryKnowledge(workflow.id, query, top_k || 5);
 
-    // Fire-and-forget to n8n
     forwardToN8N(workflow.n8n_webhook_url, {
       event: 'rag_query',
       workflow_id: workflow.id,
@@ -275,7 +365,7 @@ app.post('/api/workflow/:id/query-and-trigger', async (req, res) => {
 
     res.json({ query, matches, triggered: true });
   } catch (err) {
-    console.error('[RAG] Query+trigger error:', err.message);
+    logger.error('RAG', 'Query+trigger error', { message: err.message });
     res.status(500).json({ error: 'Failed to query and trigger' });
   }
 });
@@ -286,11 +376,10 @@ app.post('/webhooks/notion', async (req, res) => {
   const signature = req.headers['x-notion-signature'];
 
   if (!verifyNotionSignature(req.rawBody, signature)) {
-    console.warn('[Webhook] Invalid signature');
+    logger.warn('Webhook', 'Invalid signature');
     return res.status(401).json({ error: 'Invalid signature' });
   }
 
-  // Respond immediately
   res.status(200).json({ ok: true });
 
   try {
@@ -303,28 +392,35 @@ app.post('/webhooks/notion', async (req, res) => {
       || null;
 
     if (!databaseId) {
-      console.log('[Webhook] No database_id in payload');
+      logger.warn('Webhook', 'No database_id in payload');
       return;
     }
 
     const workflow = await findWorkflowByDatabaseId(databaseId);
     if (!workflow) {
-      console.log(`[Webhook] No workflow for database: ${databaseId}`);
+      logger.warn('Webhook', 'No workflow for database', { database_id: databaseId });
       return;
     }
 
-    // Forward to n8n
     await forwardToN8N(workflow.n8n_webhook_url, payload);
+    logger.info('Webhook', 'Forwarded to n8n', { workflow_id: workflow.id });
 
-    // Auto re-index page if we have a page_id and OpenAI is configured
     if (pageId && process.env.OPENAI_API_KEY) {
       indexNotionPage(workflow.id, pageId).catch(err => {
-        console.error(`[Webhook] Auto re-index failed for ${pageId}: ${err.message}`);
+        logger.error('Webhook', 'Auto re-index failed', { page_id: pageId, error: err.message });
       });
     }
   } catch (err) {
-    console.error('[Webhook] Processing error:', err.message);
+    logger.error('Webhook', 'Processing error', { message: err.message });
   }
+});
+
+// ─── Logs viewer ─────────────────────────────────────────
+
+app.get('/api/logs', (req, res) => {
+  const n = Math.min(parseInt(req.query.n) || 300, 1000);
+  const lines = logger.readLines(n);
+  res.json({ lines });
 });
 
 // ─── Start ───────────────────────────────────────────────
@@ -332,11 +428,12 @@ app.post('/webhooks/notion', async (req, res) => {
 async function start() {
   try {
     await initDB();
+    logger.info('DB', 'Tables initialized');
     app.listen(PORT, () => {
-      console.log(`[Bridge] API running on port ${PORT}`);
+      logger.info('Bridge', `API running on port ${PORT}`);
     });
   } catch (err) {
-    console.error('[Bridge] Startup failed:', err.message);
+    logger.error('Bridge', 'Startup failed', { message: err.message });
     process.exit(1);
   }
 }

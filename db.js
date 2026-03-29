@@ -60,10 +60,16 @@ async function initDB() {
 }
 
 async function getLatestToken() {
+  // 1. Check env var first (internal integration token — works without OAuth)
+  if (process.env.NOTION_TOKEN) return process.env.NOTION_TOKEN;
+
+  // 2. Fall back to OAuth token stored in DB
   const res = await pool.query(
     'SELECT access_token FROM notion_tokens ORDER BY created_at DESC LIMIT 1'
   );
-  if (res.rows.length === 0) throw new Error('No Notion token found. Complete OAuth first.');
+  if (res.rows.length === 0) {
+    throw new Error('No Notion token found. Set NOTION_TOKEN in .env or complete OAuth.');
+  }
   return res.rows[0].access_token;
 }
 

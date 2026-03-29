@@ -122,11 +122,17 @@ async function indexDocument(workflowId, sourceType, sourceId, title, content, m
   return { document_id: docId, chunks: chunks.length };
 }
 
-// ── List documents ─────────────────────────────
+// ── List documents (with chunk count) ──────────
 
 async function listDocuments(workflowId) {
   const res = await pool.query(
-    'SELECT id, source_type, source_id, title, updated_at, created_at FROM knowledge_documents WHERE workflow_id = $1 ORDER BY updated_at DESC',
+    `SELECT kd.id, kd.source_type, kd.source_id, kd.title, kd.updated_at, kd.created_at,
+            COUNT(kc.id)::int AS chunk_count
+     FROM knowledge_documents kd
+     LEFT JOIN knowledge_chunks kc ON kc.document_id = kd.id
+     WHERE kd.workflow_id = $1
+     GROUP BY kd.id
+     ORDER BY kd.updated_at DESC NULLS LAST`,
     [workflowId]
   );
   return res.rows;
